@@ -2,6 +2,7 @@ package policyexample
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aporeto-inc/trireme"
 	"github.com/aporeto-inc/trireme/monitor"
@@ -33,7 +34,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 	tagSelectors := p.createRules(runtimeInfo)
 
 	// Allow https access to github, but drop http access
-	ingress := policy.NewIPRuleList([]policy.IPRule{
+	ingress := policy.IPRuleList{
 
 		policy.IPRule{
 			Address:  "192.30.253.0/24",
@@ -60,10 +61,10 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 			Protocol: "udp",
 			Action:   policy.Accept,
 		},
-	})
+	}
 
 	// Allow access to container from localhost
-	egress := policy.NewIPRuleList([]policy.IPRule{
+	egress := policy.IPRuleList{
 		policy.IPRule{
 			Address:  "172.17.0.1/32",
 			Port:     "80",
@@ -76,12 +77,12 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 			Protocol: "icmp",
 			Action:   policy.Accept,
 		},
-	})
+	}
 
 	// Use the bridge IP from Docker.
-	ipl := policy.NewIPMap(map[string]string{})
+	ipl := policy.ExtendedMap{}
 	if ip, ok := runtimeInfo.DefaultIPAddress(); ok {
-		ipl.IPs[policy.DefaultNamespace] = ip
+		ipl[policy.DefaultNamespace] = ip
 	}
 
 	identity := runtimeInfo.Tags()
@@ -90,7 +91,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	excluded := []string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, ingress, egress, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, nil)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, ingress, egress, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded)
 
 	return containerPolicyInfo, nil
 }
@@ -114,22 +115,27 @@ func (p *CustomPolicyResolver) SetPolicyUpdater(pu trireme.PolicyUpdater) error 
 // CreateRuleDB creates a simple Rule DB that accepts packets from
 // containers with the same labels as the instantiated container.
 // If any of the labels matches, the packet is accepted.
-func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) *policy.TagSelectorList {
+func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) policy.TagSelectorList {
 
-	selectorList := &policy.TagSelectorList{
-		TagSelectors: []policy.TagSelector{},
-	}
+	selectorList := policy.TagSelectorList{}
 
 	tags := runtimeInfo.Tags()
-	for key, value := range tags.Tags {
+
+	for _, tag := range tags.GetSlice() {
+
+		parts := strings.SplitN(tag, "=", 2)
+
 		kv := policy.KeyValueOperator{
-			Key:      key,
-			Value:    []string{value},
+			Key:      parts[0],
+			Value:    []string{parts[1]},
 			Operator: policy.Equal,
 		}
 
-		tagSelector := policy.NewTagSelector([]policy.KeyValueOperator{kv}, policy.Accept)
-		selectorList.TagSelectors = append(selectorList.TagSelectors, *tagSelector)
+		tagSelector := policy.TagSelector{
+			Clause: []policy.KeyValueOperator{kv},
+			Action: policy.Accept,
+		}
+		selectorList = append(selectorList, tagSelector)
 
 	}
 
@@ -140,10 +146,14 @@ func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) *po
 		Operator: policy.Equal,
 	}
 
-	tagSelector := policy.NewTagSelector([]policy.KeyValueOperator{kv}, policy.Reject)
-	selectorList.TagSelectors = append(selectorList.TagSelectors, *tagSelector)
+	tagSelector := policy.TagSelector{
+		Clause: []policy.KeyValueOperator{kv},
+		Action: policy.Reject,
+	}
 
-	for i, selector := range selectorList.TagSelectors {
+	selectorList = append(selectorList, tagSelector)
+
+	for i, selector := range selectorList {
 		for _, clause := range selector.Clause {
 			zap.L().Info("Trireme policy for container",
 				zap.String("name", runtimeInfo.Name()),

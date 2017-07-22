@@ -48,16 +48,18 @@ func main() {
 
 func exampleExternalDockerMetadataExtractor(info *types.ContainerJSON) (*policy.PURuntime, error) {
 
-	tagsMap := policy.NewTagsMap(map[string]string{
+	tagsMap := policy.NewTagStoreFromMap(map[string]string{
 		"image": info.Config.Image,
 		"name":  info.Name,
 	})
+
 	for k, v := range info.Config.Labels {
-		tagsMap.Add(k, v)
+		tagsMap.AppendKeyValue(k, v)
 	}
 
-	ipa := policy.NewIPMap(map[string]string{
+	ipa := policy.ExtendedMap{
 		"bridge": info.NetworkSettings.IPAddress,
-	})
+	}
+
 	return policy.NewPURuntime(info.Name, info.State.Pid, tagsMap, ipa, constants.ContainerPU, nil), nil
 }

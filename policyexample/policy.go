@@ -40,26 +40,38 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 			Address:  "192.30.253.0/24",
 			Port:     "80",
 			Protocol: "TCP",
-			Action:   policy.Reject,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "1",
+			},
 		},
 
 		policy.IPRule{
 			Address:  "192.30.253.0/24",
 			Port:     "443",
 			Protocol: "TCP",
-			Action:   policy.Accept,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "2",
+			},
 		},
 		policy.IPRule{
 			Address:  "0.0.0.0/0",
 			Port:     "",
 			Protocol: "icmp",
-			Action:   policy.Accept,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "3",
+			},
 		},
 		policy.IPRule{
 			Address:  "0.0.0.0/0",
 			Port:     "53",
 			Protocol: "udp",
-			Action:   policy.Accept,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "4",
+			},
 		},
 	}
 
@@ -69,13 +81,19 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 			Address:  "172.17.0.1/32",
 			Port:     "80",
 			Protocol: "TCP",
-			Action:   policy.Accept,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "6",
+			},
 		},
 		policy.IPRule{
 			Address:  "0.0.0.0/0",
 			Port:     "",
 			Protocol: "icmp",
-			Action:   policy.Accept,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "7",
+			},
 		},
 	}
 
@@ -133,7 +151,10 @@ func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) pol
 
 		tagSelector := policy.TagSelector{
 			Clause: []policy.KeyValueOperator{kv},
-			Action: policy.Accept,
+			Policy: &policy.FlowPolicy{
+				Action:   policy.Accept,
+				PolicyID: "8",
+			},
 		}
 		selectorList = append(selectorList, tagSelector)
 
@@ -148,7 +169,10 @@ func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) pol
 
 	tagSelector := policy.TagSelector{
 		Clause: []policy.KeyValueOperator{kv},
-		Action: policy.Reject,
+		Policy: &policy.FlowPolicy{
+			Action:   policy.Reject,
+			PolicyID: "9",
+		},
 	}
 
 	selectorList = append(selectorList, tagSelector)

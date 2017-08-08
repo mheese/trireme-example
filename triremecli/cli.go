@@ -69,7 +69,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 		}
 	}
 
-	targetNetworks := []string{"172.17.0.0/24", "10.0.0.0/8"}
+	targetNetworks := []string{}
 	if len(arguments["--target-networks"].([]string)) > 0 {
 		zap.L().Info("Target Networks", zap.Strings("networks", arguments["--target-networks"].([]string)))
 		targetNetworks = arguments["--target-networks"].([]string)

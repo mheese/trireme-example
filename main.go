@@ -106,7 +106,7 @@ func main() {
     --local                                Local mode of deployment [default: true]
     --swarm                                Deploy Doccker Swarm metadata extractor [default: false]
     --extractor                            External metadata extractor [default: ]
-    --target-networks=<networks>...        The target networks that Trireme should apply authentication [default: 172.17.0.0/24]
+    --target-networks=<networks>...        The target networks that Trireme should apply authentication [default: ]
     <cgroup>                               cgroup of process that are terminated.
 
 Logging Options:

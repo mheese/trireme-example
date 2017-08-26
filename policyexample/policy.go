@@ -143,6 +143,10 @@ func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) pol
 
 		parts := strings.SplitN(tag, "=", 2)
 
+		if !strings.HasPrefix(parts[0], "@usr") {
+			continue
+		}
+
 		kv := policy.KeyValueOperator{
 			Key:      parts[0],
 			Value:    []string{parts[1]},

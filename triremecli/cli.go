@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"go.uber.org/zap"
 
@@ -33,7 +34,7 @@ func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProc
 
 	if arguments["run"].(bool) || arguments["<cgroup>"] != nil {
 		// Execute a command or process a cgroup cleanup and exit
-		return systemdutil.ExecuteCommand(arguments)
+		return processCmdArgs(arguments)
 	}
 
 	if !arguments["daemon"].(bool) {
@@ -43,6 +44,52 @@ func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProc
 	// Trireme Daemon Commands
 	processDaemonArgs(arguments, processor)
 	return nil
+}
+
+func processCmdArgs(arguments map[string]interface{}) error {
+
+	if arguments["run"].(bool) {
+
+		var command string
+		if value, ok := arguments["<command>"]; ok && value != nil {
+			command = value.(string)
+		}
+
+		var labels []string
+		if value, ok := arguments["--label"]; ok && value != nil {
+			labels = value.([]string)
+		}
+
+		var serviceName string
+		if value, ok := arguments["--service-name"]; ok && value != nil {
+			serviceName = value.(string)
+		}
+
+		var ports string
+		if value, ok := arguments["--ports"]; ok && value != nil {
+			ports = value.(string)
+		}
+
+		portsSlice := []string{"0"}
+		if len(ports) > 0 {
+			portsSlice = strings.Split(ports, ",")
+		}
+
+		var params []string
+		if value, ok := arguments["<params>"]; ok && value != nil {
+			params = append(params, value.([]string)...)
+		}
+
+		return systemdutil.ExecuteCommandWithParameters(command, params, "", serviceName, portsSlice, labels)
+	}
+
+	var cgroup string
+	if value, ok := arguments["<cgroup>"]; ok && value != nil {
+		cgroup = value.(string)
+	}
+
+	return systemdutil.ExecuteCommandWithParameters("", nil, cgroup, "", nil, nil)
+
 }
 
 // processDaemonArgs is responsible for creating a trireme daemon

@@ -13,6 +13,7 @@ import (
 	"github.com/aporeto-inc/trireme/enforcer"
 	"github.com/aporeto-inc/trireme/enforcer/utils/pkiverifier"
 	"github.com/aporeto-inc/trireme/monitor"
+	"github.com/aporeto-inc/trireme/monitor/cnimonitor"
 	"github.com/aporeto-inc/trireme/monitor/dockermonitor"
 
 	"github.com/aporeto-inc/trireme-example/policyexample"
@@ -67,6 +68,15 @@ func TriremeWithPSK(networks []string, extractor *dockermonitor.DockerMetadataEx
 
 	// Use this if you want a pre-shared key implementation
 	return configurator.NewPSKTriremeWithDockerMonitor("Server1", policyEngine, ExternalProcessor, nil, false, []byte("THIS IS A BAD PASSWORD"), *extractor, remoteEnforcer, killContainerError)
+}
+
+//TriremeCNIWithPSK is a helper method to created a PSK implementation of Trireme
+func TriremeCNIWithPSK(networks []string, remoteEnforcer bool, killContainerError bool) (trireme.Trireme, monitor.Monitor) {
+
+	policyEngine := policyexample.NewCustomPolicyResolver(networks)
+
+	// Use this if you want a pre-shared key implementation
+	return configurator.NewPSKTriremeWithCNIMonitor("Server1", policyEngine, ExternalProcessor, nil, []byte("THIS IS A BAD PASSWORD"), cnimonitor.DockerCNIMetadataExtractor, true)
 }
 
 //HybridTriremeWithPSK is a helper method to created a PSK implementation of Trireme

@@ -34,7 +34,6 @@ func main() {
 
 	rpcmon, err := rpcmonitor.NewRPCMonitor(
 		rpcmonitor.DefaultRPCAddress,
-		puHandler,
 		eventCollector,
 	)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/aporeto-inc/trireme-example/triremecli"
+	"github.com/aporeto-inc/trireme/log"
 	docopt "github.com/docopt/docopt-go"
 	"go.uber.org/zap"
 )
@@ -18,7 +19,10 @@ func Configure(level string) zap.Config {
 
 	// Set the logger
 	switch level {
-	case "trace", "debug":
+	case "trace":
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		log.Trace = true
+	case "debug":
 		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	case "info":
 		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)

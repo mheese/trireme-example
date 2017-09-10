@@ -1,7 +1,9 @@
 package policyexample
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aporeto-inc/trireme"
@@ -13,12 +15,76 @@ import (
 // CustomPolicyResolver is a simple policy engine
 type CustomPolicyResolver struct {
 	triremeNets []string
+	policies    map[string]*CachedPolicy
+}
+
+// CachedPolicy is a policy for a single container as read by a file
+type CachedPolicy struct {
+	ApplicationACLs *policy.IPRuleList
+	NetworkACLs     *policy.IPRuleList
+	TagSelectors    policy.TagSelectorList
+}
+
+// LoadPolicies loads a set of policies defined in a JSON file
+func LoadPolicies(file string) (map[string]*CachedPolicy, error) {
+	var config map[string]*CachedPolicy
+
+	configFile, err := os.Open(file)
+	if err != nil {
+		fmt.Println("Unable to load configuration file", err.Error())
+		configFile.Close() //nolint
+		return nil, err
+	}
+	defer configFile.Close() //nolint
+
+	jsonParser := json.NewDecoder(configFile)
+	err = jsonParser.Decode(&config)
+	if err != nil {
+		fmt.Println("Failed create json decoder", err)
+		return nil, err
+	}
+
+	if _, ok := config["default"]; !ok {
+		config["default"] = &CachedPolicy{
+			ApplicationACLs: &policy.IPRuleList{},
+			NetworkACLs:     &policy.IPRuleList{},
+			TagSelectors:    policy.TagSelectorList{},
+		}
+	}
+
+	return config, nil
+}
+
+// GetPolicyIndex assumes that one of the labels of the PU is
+// PolicyIndex and returns the corresponding value
+func GetPolicyIndex(runtimeInfo policy.RuntimeReader) (string, error) {
+
+	tags := runtimeInfo.Tags()
+
+	for _, tag := range tags.GetSlice() {
+
+		parts := strings.SplitN(tag, "=", 2)
+
+		if strings.HasPrefix(parts[0], "@usr:PolicyIndex") {
+			return parts[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("PolicyIndex Not Found")
 }
 
 // NewCustomPolicyResolver creates a new example policy engine for the Trireme package
-func NewCustomPolicyResolver(networks []string) *CustomPolicyResolver {
+func NewCustomPolicyResolver(networks []string, policyFile string) *CustomPolicyResolver {
 
-	return &CustomPolicyResolver{triremeNets: networks}
+	policies, err := LoadPolicies(policyFile)
+	if err != nil {
+		zap.L().Panic("Cannot run without policies")
+	}
+
+	return &CustomPolicyResolver{
+		triremeNets: networks,
+		policies:    policies,
+	}
 }
 
 // ResolvePolicy implements the Trireme interface. Here we just create a simple
@@ -31,70 +97,21 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 		zap.String("name", runtimeInfo.Name()),
 	)
 
-	tagSelectors := p.createRules(runtimeInfo)
-
-	// Allow https access to github, but drop http access
-	ingress := policy.IPRuleList{
-
-		policy.IPRule{
-			Address:  "192.30.253.0/24",
-			Port:     "80",
-			Protocol: "TCP",
-			Policy: &policy.FlowPolicy{
-				Action:   policy.Accept,
-				PolicyID: "1",
-			},
-		},
-
-		policy.IPRule{
-			Address:  "192.30.253.0/24",
-			Port:     "443",
-			Protocol: "TCP",
-			Policy: &policy.FlowPolicy{
-				Action:   policy.Accept,
-				PolicyID: "2",
-			},
-		},
-		policy.IPRule{
-			Address:  "0.0.0.0/0",
-			Port:     "",
-			Protocol: "icmp",
-			Policy: &policy.FlowPolicy{
-				Action:   policy.Accept,
-				PolicyID: "3",
-			},
-		},
-		policy.IPRule{
-			Address:  "0.0.0.0/0",
-			Port:     "53",
-			Protocol: "udp",
-			Policy: &policy.FlowPolicy{
-				Action:   policy.Accept,
-				PolicyID: "4",
-			},
-		},
+	policyIndex, err := GetPolicyIndex(runtimeInfo)
+	if err != nil {
+		zap.L().Error("Cannot find requested policy index - Associating default policy - drop-all")
+		policyIndex = "default"
 	}
 
-	// Allow access to container from localhost
-	egress := policy.IPRuleList{
-		policy.IPRule{
-			Address:  "172.17.0.1/32",
-			Port:     "80",
-			Protocol: "TCP",
-			Policy: &policy.FlowPolicy{
-				Action:   policy.Accept,
-				PolicyID: "6",
-			},
-		},
-		policy.IPRule{
-			Address:  "0.0.0.0/0",
-			Port:     "",
-			Protocol: "icmp",
-			Policy: &policy.FlowPolicy{
-				Action:   policy.Accept,
-				PolicyID: "7",
-			},
-		},
+	puPolicy, ok := p.policies[policyIndex]
+	if !ok {
+		fmt.Println("I didn't find it in the cache ")
+		return nil, fmt.Errorf("No policy found")
+	}
+
+	// For the default policy we accept traffic with the same labels
+	if policyIndex == "default" {
+		puPolicy.TagSelectors = p.createRules(runtimeInfo)
 	}
 
 	// Use the bridge IP from Docker.
@@ -109,7 +126,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	excluded := []string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, ingress, egress, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, puPolicy.TagSelectors, identity, annotations, ipl, p.triremeNets, excluded)
 
 	return containerPolicyInfo, nil
 }

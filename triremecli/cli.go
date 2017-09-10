@@ -116,6 +116,8 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 		}
 	}
 
+	policyFile := arguments["--policy"].(string)
+
 	targetNetworks := []string{}
 	if len(arguments["--target-networks"].([]string)) > 0 {
 		zap.L().Info("Target Networks", zap.Strings("networks", arguments["--target-networks"].([]string)))
@@ -135,10 +137,10 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 				zap.String("ca", caCertFile),
 				zap.String("ca", caCertKeyFile),
 			)
-			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError)
+			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
 		} else {
 			zap.L().Info("Setting up trireme with PSK")
-			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError)
+			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
 		}
 	} else { // Hybrid mode
 		if arguments["--usePKI"].(bool) {
@@ -152,9 +154,9 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 				zap.String("ca", caCertFile),
 				zap.String("ca", caCertKeyFile),
 			)
-			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError)
+			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile)
 		} else {
-			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError)
+			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile)
 			if rm == nil {
 				zap.L().Fatal("Failed to create remote monitor for hybrid")
 			}
@@ -164,7 +166,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 
 	if arguments["--cni"].(bool) {
 		zap.L().Info("Setting up CNI trireme with PSK")
-		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError)
+		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile)
 	}
 
 	if t == nil {

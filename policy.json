@@ -1,0 +1,126 @@
+{
+    "Web": {
+        "ApplicationACLs": [
+            {
+                "Address": "192.30.253.0/24",
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "1",
+                    "ServiceID": ""
+                },
+                "Port": "80",
+                "Protocol": "TCP"
+            },
+            {
+                "Address": "192.30.253.0/24",
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "2",
+                    "ServiceID": ""
+                },
+                "Port": "443",
+                "Protocol": "TCP"
+            },
+            {
+                "Address": "0.0.0.0/0",
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "3",
+                    "ServiceID": ""
+                },
+                "Port": "",
+                "Protocol": "icmp"
+            },
+            {
+                "Address": "0.0.0.0/0",
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "4",
+                    "ServiceID": ""
+                },
+                "Port": "53",
+                "Protocol": "udp"
+            }
+        ],
+        "NetworkACLs": [
+            {
+                "Address": "0.0.0.0/0",
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "7",
+                    "ServiceID": ""
+                },
+                "Port": "",
+                "Protocol": "icmp"
+            }
+        ],
+        "TagSelectors": [
+            {
+                "Clause": [
+                    {
+                        "Key": "@usr:app",
+                        "Operator": "=",
+                        "Value": [
+                            "web"
+                        ]
+                    }
+                ],
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "8",
+                    "ServiceID": ""
+                }
+            },
+            {
+                "Clause": [
+                    {
+                        "Key": "@usr:env",
+                        "Operator": "=",
+                        "Value": [
+                            "dev"
+                        ]
+                    }
+                ],
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "8",
+                    "ServiceID": ""
+                }
+            }
+        ]
+    },
+    "DB": {
+        "ApplicationACLs": [
+            {
+                "Address": "0.0.0.0/0",
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "4",
+                    "ServiceID": ""
+                },
+                "Port": "53",
+                "Protocol": "udp"
+            }
+        ],
+        "NetworkACLs": [
+        ],
+        "TagSelectors": [
+            {
+                "Clause": [
+                    {
+                        "Key": "@usr:app",
+                        "Operator": "=",
+                        "Value": [
+                            "db"
+                        ]
+                    }
+                ],
+                "Policy": {
+                    "Action": 1,
+                    "PolicyID": "8",
+                    "ServiceID": ""
+                }
+            }
+        ]
+    }
+}

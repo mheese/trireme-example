@@ -100,7 +100,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	policyIndex, err := GetPolicyIndex(runtimeInfo)
 	if err != nil {
-		zap.L().Warn("Cannot find requested policy index - Associating default policy - drop-all")
+		zap.L().Warn("Cannot find requested policy index - Associating default policy")
 		policyIndex = "default"
 	}
 

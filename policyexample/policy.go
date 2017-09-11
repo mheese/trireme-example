@@ -54,6 +54,8 @@ func LoadPolicies(file string) map[string]*CachedPolicy {
 
 	configFile.Close() //nolint
 
+	zap.L().Info("Using policy from file", zap.String("Policy File", file))
+
 	return config
 }
 
@@ -67,6 +69,7 @@ func GetPolicyIndex(runtimeInfo policy.RuntimeReader) (string, error) {
 
 		parts := strings.SplitN(tag, "=", 2)
 		if strings.HasPrefix(parts[0], "@usr:PolicyIndex") {
+			zap.L().Info("Using policy from file", zap.String("Policy ID", parts[1]))
 			return parts[1], nil
 		}
 	}
@@ -97,7 +100,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	policyIndex, err := GetPolicyIndex(runtimeInfo)
 	if err != nil {
-		zap.L().Error("Cannot find requested policy index - Associating default policy - drop-all")
+		zap.L().Warn("Cannot find requested policy index - Associating default policy - drop-all")
 		policyIndex = "default"
 	}
 

@@ -26,33 +26,29 @@ type CachedPolicy struct {
 }
 
 // LoadPolicies loads a set of policies defined in a JSON file
-func LoadPolicies(file string) (map[string]*CachedPolicy, error) {
+func LoadPolicies(file string) map[string]*CachedPolicy {
 	var config map[string]*CachedPolicy
+	config["default"] = &CachedPolicy{
+		ApplicationACLs: &policy.IPRuleList{},
+		NetworkACLs:     &policy.IPRuleList{},
+		TagSelectors:    policy.TagSelectorList{},
+	}
 
 	configFile, err := os.Open(file)
 	if err != nil {
-		fmt.Println("Unable to load configuration file", err.Error())
 		configFile.Close() //nolint
-		return nil, err
+		zap.L().Warn("No policy file found - using defaults")
+		return config
 	}
 	defer configFile.Close() //nolint
 
 	jsonParser := json.NewDecoder(configFile)
 	err = jsonParser.Decode(&config)
 	if err != nil {
-		fmt.Println("Failed create json decoder", err)
-		return nil, err
+		zap.L().Error("Invalid policies - using default")
 	}
 
-	if _, ok := config["default"]; !ok {
-		config["default"] = &CachedPolicy{
-			ApplicationACLs: &policy.IPRuleList{},
-			NetworkACLs:     &policy.IPRuleList{},
-			TagSelectors:    policy.TagSelectorList{},
-		}
-	}
-
-	return config, nil
+	return config
 }
 
 // GetPolicyIndex assumes that one of the labels of the PU is
@@ -62,9 +58,7 @@ func GetPolicyIndex(runtimeInfo policy.RuntimeReader) (string, error) {
 	tags := runtimeInfo.Tags()
 
 	for _, tag := range tags.GetSlice() {
-
 		parts := strings.SplitN(tag, "=", 2)
-
 		if strings.HasPrefix(parts[0], "@usr:PolicyIndex") {
 			return parts[1], nil
 		}
@@ -76,10 +70,7 @@ func GetPolicyIndex(runtimeInfo policy.RuntimeReader) (string, error) {
 // NewCustomPolicyResolver creates a new example policy engine for the Trireme package
 func NewCustomPolicyResolver(networks []string, policyFile string) *CustomPolicyResolver {
 
-	policies, err := LoadPolicies(policyFile)
-	if err != nil {
-		zap.L().Panic("Cannot run without policies")
-	}
+	policies := LoadPolicies(policyFile)
 
 	return &CustomPolicyResolver{
 		triremeNets: networks,
@@ -109,9 +100,10 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 		return nil, fmt.Errorf("No policy found")
 	}
 
+	tagSelectors := puPolicy.TagSelectors
 	// For the default policy we accept traffic with the same labels
 	if policyIndex == "default" {
-		puPolicy.TagSelectors = p.createRules(runtimeInfo)
+		tagSelectors = p.createDefaultRules(runtimeInfo)
 	}
 
 	// Use the bridge IP from Docker.
@@ -126,7 +118,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	excluded := []string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, puPolicy.TagSelectors, identity, annotations, ipl, p.triremeNets, excluded)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded)
 
 	return containerPolicyInfo, nil
 }
@@ -150,7 +142,7 @@ func (p *CustomPolicyResolver) SetPolicyUpdater(pu trireme.PolicyUpdater) error 
 // CreateRuleDB creates a simple Rule DB that accepts packets from
 // containers with the same labels as the instantiated container.
 // If any of the labels matches, the packet is accepted.
-func (p *CustomPolicyResolver) createRules(runtimeInfo policy.RuntimeReader) policy.TagSelectorList {
+func (p *CustomPolicyResolver) createDefaultRules(runtimeInfo policy.RuntimeReader) policy.TagSelectorList {
 
 	selectorList := policy.TagSelectorList{}
 

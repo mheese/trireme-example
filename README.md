@@ -55,39 +55,6 @@ curl http://<nginx-IP>
 ```
 fails.
 
-## Supporting host networking
-
-Trireme isolation is also possible for containers that start with host networking. There are
-several use cases where one might choose to do that, if they want to associate a static IP
-address with a container or a similar function. For example, the API Router in Redhat OpenShift
-uses the host network. When one uses the host network there is a big problem that the isolation
-of network namespaces is lost. Trireme brings back some of this isolation and treats every
-container differently, although they are possibly mapped in the same network namespace.
-
-Let us assume that you Trireme running as in the previous example. You can start a docker
-container with a specific label and attached to the host namespace:
-
-```bash
-docker run -l app=web --net=host -d nginx
-```
-
-In this case the nginx server is attached to the host network and can be accessed directly from
-the host. If you try
-
-```bash
-curl http://127.0.0.1
-```
-
-The curl command will fail. Similarly, it will fail if you target it to the host bridge. The reason
-is that Trireme still controls access to the container. However, if you try something like that:
-
-```bash
-docker run -l app=web -it centos
-curl http://172.17.0.1
-```
-
-The curl command will succeed.
-
 # Building Trireme Example
 
 If you want to build and try Trireme example with more advanced options and Linux Services
@@ -163,6 +130,39 @@ docker run -l app=web -it centos
 
 And you can access the nginx server at the host. However if you start the container
 with different labels you will not able able to access the nginx container.
+
+## Supporting host networking
+
+Trireme isolation is also possible for containers that start with host networking. There are
+several use cases where one might choose to do that, if they want to associate a static IP
+address with a container or a similar function. For example, the API Router in Redhat OpenShift
+uses the host network. When one uses the host network there is a big problem that the isolation
+of network namespaces is lost. Trireme brings back some of this isolation and treats every
+container differently, although they are possibly mapped in the same network namespace.
+
+Let us assume that you Trireme running as in the previous example. You can start a docker
+container with a specific label and attached to the host namespace:
+
+```bash
+docker run -l app=web --net=host -d nginx
+```
+
+In this case the nginx server is attached to the host network and can be accessed directly from
+the host. If you try
+
+```bash
+curl http://127.0.0.1
+```
+
+The curl command will fail. Similarly, it will fail if you target it to the host bridge. The reason
+is that Trireme still controls access to the container. However, if you try something like that:
+
+```bash
+docker run -l app=web -it centos
+curl http://172.17.0.1
+```
+
+The curl command will succeed.
 
 ## Trying it with Docker Swarm
 
@@ -284,7 +284,7 @@ the other nodes are not Trireme based. This is done by auto-detecting whether
 the receiver of traffic is Trireme enabled and it responds with the proper
 authorization headers. Note also, that by using ApplicationACLs we can allow
 DNS traffic or other similar services. By default Trireme will block all other
-traffic from the container. 
+traffic from the container.
 2. `NetworkACLs` describes what traffic should be accepted if the other side
 does not present any network authorization headers. In general this should be
 avoided, but there are specific use cases that someone might want to achieve that.

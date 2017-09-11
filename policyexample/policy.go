@@ -28,7 +28,8 @@ type CachedPolicy struct {
 // LoadPolicies loads a set of policies defined in a JSON file
 func LoadPolicies(file string) map[string]*CachedPolicy {
 	var config map[string]*CachedPolicy
-	config["default"] = &CachedPolicy{
+
+	defaultConfig := &CachedPolicy{
 		ApplicationACLs: &policy.IPRuleList{},
 		NetworkACLs:     &policy.IPRuleList{},
 		TagSelectors:    policy.TagSelectorList{},
@@ -38,15 +39,20 @@ func LoadPolicies(file string) map[string]*CachedPolicy {
 	if err != nil {
 		configFile.Close() //nolint
 		zap.L().Warn("No policy file found - using defaults")
-		return config
+		return map[string]*CachedPolicy{
+			"default": defaultConfig,
+		}
 	}
-	defer configFile.Close() //nolint
 
 	jsonParser := json.NewDecoder(configFile)
 	err = jsonParser.Decode(&config)
 	if err != nil {
 		zap.L().Error("Invalid policies - using default")
 	}
+
+	config["default"] = defaultConfig
+
+	configFile.Close() //nolint
 
 	return config
 }
@@ -58,6 +64,7 @@ func GetPolicyIndex(runtimeInfo policy.RuntimeReader) (string, error) {
 	tags := runtimeInfo.Tags()
 
 	for _, tag := range tags.GetSlice() {
+
 		parts := strings.SplitN(tag, "=", 2)
 		if strings.HasPrefix(parts[0], "@usr:PolicyIndex") {
 			return parts[1], nil

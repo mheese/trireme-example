@@ -59,21 +59,21 @@ fails.
 
 If you want to build and try Trireme example with more advanced options and Linux Services
 you need to follow these instructions. Please make sure that Go 1.8 is installed in
-your machine. Trireme has some dependencies. libnetfilter-queue and conntrack utilities
+your machine. Trireme has some dependencies. libnetfilter-queue and ipset utilities
 must be also installed and your OS must support iptables 1.6 or greater.
 
 For example in an Ubuntu distribution:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libnetfilter-queue1 iptables
+sudo apt-get install -y libnetfilter-queue1 iptables ipset
 iptables -version
 ```
 
 for Centos:
 ```bash
 sudo yum update
-sudo yum install libnetfilter_queue1 iptables
+sudo yum install libnetfilter_queue1 iptables ipset 
 iptables -version
 ```
 

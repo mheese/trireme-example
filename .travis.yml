@@ -32,8 +32,8 @@ script:
 
 after_success:
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+  - 'if [ ${TRAVIS_BRANCH} = "master" ]; then
       make docker_push;
-    fi
+    fi'
   - make docker_push -e DOCKER_IMAGE_TAG="${TRAVIS_COMMIT}"
   - bash <(curl -s https://codecov.io/bash)

@@ -82,6 +82,7 @@ func main() {
 	[--policy=<policyFile>]
         [--usePKI]
         [--hybrid|--remote|--local|--cni]
+				[--influxdb]
         [--swarm|--extractor <metadatafile>]
         [--keyFile=<keyFile>]
         [--certFile=<certFile>]
@@ -98,6 +99,7 @@ func main() {
     --service-name=<sname>                 The name of the service to be launched.
     --label=<keyvalue>                     The metadata/labels associated with a service.
     --usePKI                               Use PKI for Trireme [default: false].
+		--influxdb                             Use InluxDB to collect stats
     --certFile=<certFile>                  Certificate file [default: certs/cert.pem].
     --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
     --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].

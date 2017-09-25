@@ -12,6 +12,7 @@ import (
 	"github.com/aporeto-inc/trireme-example/extractors"
 
 	"github.com/aporeto-inc/trireme"
+	"github.com/aporeto-inc/trireme-statistics/collector/influxdb"
 	"github.com/aporeto-inc/trireme/cmd/remoteenforcer"
 	"github.com/aporeto-inc/trireme/cmd/systemdutil"
 	"github.com/aporeto-inc/trireme/enforcer"
@@ -156,11 +157,22 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 			)
 			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile)
 		} else {
-			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile)
-			if rm == nil {
-				zap.L().Fatal("Failed to create remote monitor for hybrid")
+			if arguments["--influxdb"].(bool) {
+				collectorInstance, _ := influxdb.NewDB()
+				collectorInstance.Start()
+				t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile, collectorInstance)
+				if rm == nil {
+					zap.L().Fatal("Failed to create remote monitor for hybrid")
+				}
+				zap.L().Info("Setting up trireme with PSK")
+				zap.L().Info("Starting InfluxDB")
+			} else {
+				t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile, nil)
+				if rm == nil {
+					zap.L().Fatal("Failed to create remote monitor for hybrid")
+				}
+				zap.L().Info("Setting up trireme with PSK")
 			}
-			zap.L().Info("Setting up trireme with PSK")
 		}
 	}
 

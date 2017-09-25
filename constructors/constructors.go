@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aporeto-inc/trireme"
+	"github.com/aporeto-inc/trireme-statistics/collector/influxdb"
 	"github.com/aporeto-inc/trireme/configurator"
 	"github.com/aporeto-inc/trireme/crypto"
 	"github.com/aporeto-inc/trireme/enforcer"
@@ -83,10 +84,12 @@ func TriremeCNIWithPSK(networks []string, remoteEnforcer bool, killContainerErro
 func HybridTriremeWithPSK(networks []string, extractor *dockermonitor.DockerMetadataExtractor, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor, monitor.Monitor) {
 
 	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
+	collectorInstance, _ := influxdb.NewDB()
+	collectorInstance.Start()
 
 	pass := []byte("THIS IS A BAD PASSWORD")
 	// Use this if you want a pre-shared key implementation
-	return configurator.NewPSKHybridTriremeWithMonitor("Server1", networks, policyEngine, ExternalProcessor, nil, false, pass, *extractor, killContainerError)
+	return configurator.NewPSKHybridTriremeWithMonitor("Server1", networks, policyEngine, ExternalProcessor, collectorInstance, false, pass, *extractor, killContainerError)
 }
 
 // HybridTriremeWithCompactPKI is a helper method to created a PKI implementation of Trireme

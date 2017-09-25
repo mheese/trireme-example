@@ -6,7 +6,7 @@ DOCKER_IMAGE_TAG?=$(BUILD_NUMBER)
 BIN_PATH := /usr/local/bin
 
 build:
-	glide install
+	glide install && glide up
 	CGO_ENABLED=1 go build -a -installsuffix cgo
 
 install: build

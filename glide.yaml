@@ -5,6 +5,8 @@ import:
   ## Aporeto
 - package: github.com/aporeto-inc/trireme
   version: 1.0.x
+- package: github.com/aporeto-inc/trireme-statistics
+  version: "working-branch-2"
 
   ## 3rd Party
 - package: github.com/docker/docker

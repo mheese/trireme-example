@@ -93,6 +93,18 @@ func processCmdArgs(arguments map[string]interface{}) error {
 
 }
 
+// startInfluxDB will create a new influxdb instance
+func startInfluxDB() *influxdb.Influxdbs {
+	collectorInstance, err := influxdb.NewDB()
+	if err != nil {
+		zap.L().Fatal("Error starting influxdb")
+	}
+	collectorInstance.Start()
+	zap.L().Info("Make sure trireme-statistics is up and running")
+	zap.L().Info("Starting InfluxDB")
+	return collectorInstance
+}
+
 // processDaemonArgs is responsible for creating a trireme daemon
 func processDaemonArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) {
 
@@ -128,44 +140,78 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 	if !arguments["--hybrid"].(bool) {
 		remote := arguments["--remote"].(bool)
 		if arguments["--usePKI"].(bool) {
-			keyFile := arguments["--keyFile"].(string)
-			certFile := arguments["--certFile"].(string)
-			caCertFile := arguments["--caCertFile"].(string)
-			caCertKeyFile := arguments["--caKeyFile"].(string)
-			zap.L().Info("Setting up trireme with PKI",
-				zap.String("key", keyFile),
-				zap.String("cert", certFile),
-				zap.String("ca", caCertFile),
-				zap.String("ca", caCertKeyFile),
-			)
-			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
+			if arguments["--influxdb"].(bool) {
+				collectorInstance := startInfluxDB()
+				keyFile := arguments["--keyFile"].(string)
+				certFile := arguments["--certFile"].(string)
+				caCertFile := arguments["--caCertFile"].(string)
+				caCertKeyFile := arguments["--caKeyFile"].(string)
+				zap.L().Info("Setting up trireme with PKI",
+					zap.String("key", keyFile),
+					zap.String("cert", certFile),
+					zap.String("ca", caCertFile),
+					zap.String("ca", caCertKeyFile),
+				)
+				t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile, collectorInstance)
+			} else {
+				keyFile := arguments["--keyFile"].(string)
+				certFile := arguments["--certFile"].(string)
+				caCertFile := arguments["--caCertFile"].(string)
+				caCertKeyFile := arguments["--caKeyFile"].(string)
+				zap.L().Info("Setting up trireme with PKI",
+					zap.String("key", keyFile),
+					zap.String("cert", certFile),
+					zap.String("ca", caCertFile),
+					zap.String("ca", caCertKeyFile),
+				)
+				t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile, nil)
+			}
 		} else {
-			zap.L().Info("Setting up trireme with PSK")
-			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
+			if arguments["--influxdb"].(bool) {
+				collectorInstance := startInfluxDB()
+				zap.L().Info("Setting up trireme with PSK")
+				t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile, collectorInstance)
+			} else {
+				zap.L().Info("Setting up trireme with PSK")
+				t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile, nil)
+			}
 		}
 	} else { // Hybrid mode
 		if arguments["--usePKI"].(bool) {
-			keyFile := arguments["--keyFile"].(string)
-			certFile := arguments["--certFile"].(string)
-			caCertFile := arguments["--caCertFile"].(string)
-			caCertKeyFile := arguments["--caKeyFile"].(string)
-			zap.L().Info("Setting up trireme with Compact PKI",
-				zap.String("key", keyFile),
-				zap.String("cert", certFile),
-				zap.String("ca", caCertFile),
-				zap.String("ca", caCertKeyFile),
-			)
-			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile)
+			if arguments["--influxdb"].(bool) {
+				collectorInstance := startInfluxDB()
+				keyFile := arguments["--keyFile"].(string)
+				certFile := arguments["--certFile"].(string)
+				caCertFile := arguments["--caCertFile"].(string)
+				caCertKeyFile := arguments["--caKeyFile"].(string)
+				zap.L().Info("Setting up trireme with Compact PKI",
+					zap.String("key", keyFile),
+					zap.String("cert", certFile),
+					zap.String("ca", caCertFile),
+					zap.String("ca", caCertKeyFile),
+				)
+				t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile, collectorInstance)
+			} else {
+				keyFile := arguments["--keyFile"].(string)
+				certFile := arguments["--certFile"].(string)
+				caCertFile := arguments["--caCertFile"].(string)
+				caCertKeyFile := arguments["--caKeyFile"].(string)
+				zap.L().Info("Setting up trireme with Compact PKI",
+					zap.String("key", keyFile),
+					zap.String("cert", certFile),
+					zap.String("ca", caCertFile),
+					zap.String("ca", caCertKeyFile),
+				)
+				t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile, nil)
+			}
 		} else {
 			if arguments["--influxdb"].(bool) {
-				collectorInstance, _ := influxdb.NewDB()
-				collectorInstance.Start()
+				collectorInstance := startInfluxDB()
 				t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile, collectorInstance)
 				if rm == nil {
 					zap.L().Fatal("Failed to create remote monitor for hybrid")
 				}
 				zap.L().Info("Setting up trireme with PSK")
-				zap.L().Info("Starting InfluxDB")
 			} else {
 				t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile, nil)
 				if rm == nil {
@@ -177,8 +223,13 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 	}
 
 	if arguments["--cni"].(bool) {
-		zap.L().Info("Setting up CNI trireme with PSK")
-		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile)
+		if arguments["--influxdb"].(bool) {
+			collectorInstance := startInfluxDB()
+			zap.L().Info("Setting up CNI trireme with PSK")
+			t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile, collectorInstance)
+		} else {
+			t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile, nil)
+		}
 	}
 
 	if t == nil {

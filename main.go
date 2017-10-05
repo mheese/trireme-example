@@ -99,7 +99,7 @@ func main() {
     --service-name=<sname>                 The name of the service to be launched.
     --label=<keyvalue>                     The metadata/labels associated with a service.
     --usePKI                               Use PKI for Trireme [default: false].
-		--influxdb                             Use InluxDB to collect stats.
+		--influxdb                             Use InluxDB to collect stats. [make sure trireme-statistics is up and running].
     --certFile=<certFile>                  Certificate file [default: certs/cert.pem].
     --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
     --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].

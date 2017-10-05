@@ -93,24 +93,14 @@ func processCmdArgs(arguments map[string]interface{}) error {
 
 }
 
-// startInfluxDB will create a new influxdb instance
-func startInfluxDB() *influxdb.Influxdbs {
-	collectorInstance, err := influxdb.NewDB()
-	if err != nil {
-		zap.L().Fatal("Error starting influxdb")
-	}
-	collectorInstance.Start()
-	zap.L().Info("Make sure trireme-statistics is up and running")
-	zap.L().Info("Starting InfluxDB")
-	return collectorInstance
-}
-
 // processDaemonArgs is responsible for creating a trireme daemon
 func processDaemonArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) {
 
 	var t trireme.Trireme
 	var m monitor.Monitor
 	var rm monitor.Monitor
+	var collectorInstance *influxdb.Influxdbs
+
 	var err error
 	var customExtractor dockermonitor.DockerMetadataExtractor
 
@@ -141,7 +131,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 		remote := arguments["--remote"].(bool)
 		if arguments["--usePKI"].(bool) {
 			if arguments["--influxdb"].(bool) {
-				collectorInstance := startInfluxDB()
+				collectorInstance = influxdb.CreateAndStartDB()
 				keyFile := arguments["--keyFile"].(string)
 				certFile := arguments["--certFile"].(string)
 				caCertFile := arguments["--caCertFile"].(string)
@@ -152,6 +142,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 					zap.String("ca", caCertFile),
 					zap.String("ca", caCertKeyFile),
 				)
+				zap.L().Info("Starting InfluxDB")
 				t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile, collectorInstance)
 			} else {
 				keyFile := arguments["--keyFile"].(string)
@@ -168,8 +159,9 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 			}
 		} else {
 			if arguments["--influxdb"].(bool) {
-				collectorInstance := startInfluxDB()
+				collectorInstance = influxdb.CreateAndStartDB()
 				zap.L().Info("Setting up trireme with PSK")
+				zap.L().Info("Starting InfluxDB")
 				t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile, collectorInstance)
 			} else {
 				zap.L().Info("Setting up trireme with PSK")
@@ -179,7 +171,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 	} else { // Hybrid mode
 		if arguments["--usePKI"].(bool) {
 			if arguments["--influxdb"].(bool) {
-				collectorInstance := startInfluxDB()
+				collectorInstance = influxdb.CreateAndStartDB()
 				keyFile := arguments["--keyFile"].(string)
 				certFile := arguments["--certFile"].(string)
 				caCertFile := arguments["--caCertFile"].(string)
@@ -190,6 +182,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 					zap.String("ca", caCertFile),
 					zap.String("ca", caCertKeyFile),
 				)
+				zap.L().Info("Starting InfluxDB")
 				t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile, collectorInstance)
 			} else {
 				keyFile := arguments["--keyFile"].(string)
@@ -206,12 +199,13 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 			}
 		} else {
 			if arguments["--influxdb"].(bool) {
-				collectorInstance := startInfluxDB()
+				collectorInstance = influxdb.CreateAndStartDB()
 				t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile, collectorInstance)
 				if rm == nil {
 					zap.L().Fatal("Failed to create remote monitor for hybrid")
 				}
 				zap.L().Info("Setting up trireme with PSK")
+				zap.L().Info("Starting InfluxDB")
 			} else {
 				t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile, nil)
 				if rm == nil {
@@ -224,8 +218,9 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 
 	if arguments["--cni"].(bool) {
 		if arguments["--influxdb"].(bool) {
-			collectorInstance := startInfluxDB()
+			collectorInstance = influxdb.CreateAndStartDB()
 			zap.L().Info("Setting up CNI trireme with PSK")
+			zap.L().Info("Starting InfluxDB")
 			t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile, collectorInstance)
 		} else {
 			t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile, nil)

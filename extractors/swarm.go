@@ -51,5 +51,5 @@ func SwarmExtractor(info *types.ContainerJSON) (*policy.PURuntime, error) {
 		"bridge": "0.0.0.0/0",
 	}
 
-	return policy.NewPURuntime(info.Name, info.State.Pid, tags, ipa, constants.ContainerPU, nil, []byte{}), nil
+	return policy.NewPURuntime(info.Name, info.State.Pid, tags, ipa, constants.ContainerPU, nil), nil
 }

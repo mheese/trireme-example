@@ -6,7 +6,7 @@ import:
 - package: github.com/aporeto-inc/trireme
   version: 1.0.x
 - package: github.com/aporeto-inc/trireme-statistics
-  version: "Dependency-Graph"
+  version: "master"
 
   ## 3rd Party
 - package: github.com/docker/docker

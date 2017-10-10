@@ -109,7 +109,7 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	excluded := []string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, egress, ingress, tagSelectors, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, []string{}, []string{}, []string)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, egress, ingress, tagSelectors, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, []string{}, []string{}, []string{})
 
 	return containerPolicyInfo, nil
 }

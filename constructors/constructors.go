@@ -13,6 +13,7 @@ import (
 	"github.com/aporeto-inc/trireme/enforcer"
 	"github.com/aporeto-inc/trireme/enforcer/utils/pkiverifier"
 	"github.com/aporeto-inc/trireme/monitor"
+	"github.com/aporeto-inc/trireme/monitor/cnimonitor"
 	"github.com/aporeto-inc/trireme/monitor/dockermonitor"
 
 	"github.com/aporeto-inc/trireme-example/policyexample"
@@ -24,7 +25,7 @@ var (
 )
 
 // TriremeWithPKI is a helper method to created a PKI implementation of Trireme
-func TriremeWithPKI(keyFile, certFile, caCertFile string, networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool) (trireme.Trireme, monitor.Monitor) {
+func TriremeWithPKI(keyFile, certFile, caCertFile string, networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor) {
 
 	// Load client cert
 	certPEM, err := ioutil.ReadFile(certFile)
@@ -49,7 +50,7 @@ func TriremeWithPKI(keyFile, certFile, caCertFile string, networks []string, ext
 		zap.L().Fatal(err.Error())
 	}
 
-	policyEngine := policyexample.NewCustomPolicyResolver(networks)
+	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
 
 	t, m, p := configurator.NewPKITriremeWithDockerMonitor("Server1", policyEngine, ExternalProcessor, nil, false, keyPEM, certPEM, caCertPEM, *extractor, remoteEnforcer, killContainerError)
 
@@ -61,18 +62,27 @@ func TriremeWithPKI(keyFile, certFile, caCertFile string, networks []string, ext
 }
 
 //TriremeWithPSK is a helper method to created a PSK implementation of Trireme
-func TriremeWithPSK(networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool) (trireme.Trireme, monitor.Monitor) {
+func TriremeWithPSK(networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor) {
 
-	policyEngine := policyexample.NewCustomPolicyResolver(networks)
+	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
 
 	// Use this if you want a pre-shared key implementation
 	return configurator.NewPSKTriremeWithDockerMonitor("Server1", policyEngine, ExternalProcessor, nil, false, []byte("THIS IS A BAD PASSWORD"), *extractor, remoteEnforcer, killContainerError)
 }
 
-//HybridTriremeWithPSK is a helper method to created a PSK implementation of Trireme
-func HybridTriremeWithPSK(networks []string, extractor *dockermonitor.DockerMetadataExtractor, killContainerError bool) (trireme.Trireme, monitor.Monitor, monitor.Monitor) {
+//TriremeCNIWithPSK is a helper method to created a PSK implementation of Trireme
+func TriremeCNIWithPSK(networks []string, remoteEnforcer bool, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor) {
 
-	policyEngine := policyexample.NewCustomPolicyResolver(networks)
+	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
+
+	// Use this if you want a pre-shared key implementation
+	return configurator.NewPSKTriremeWithCNIMonitor("Server1", policyEngine, ExternalProcessor, nil, []byte("THIS IS A BAD PASSWORD"), cnimonitor.DockerCNIMetadataExtractor, true)
+}
+
+//HybridTriremeWithPSK is a helper method to created a PSK implementation of Trireme
+func HybridTriremeWithPSK(networks []string, extractor *dockermonitor.DockerMetadataExtractor, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor, monitor.Monitor) {
+
+	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
 
 	pass := []byte("THIS IS A BAD PASSWORD")
 	// Use this if you want a pre-shared key implementation
@@ -80,7 +90,7 @@ func HybridTriremeWithPSK(networks []string, extractor *dockermonitor.DockerMeta
 }
 
 // HybridTriremeWithCompactPKI is a helper method to created a PKI implementation of Trireme
-func HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caKeyFile string, networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool) (trireme.Trireme, monitor.Monitor, monitor.Monitor) {
+func HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caKeyFile string, networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor, monitor.Monitor) {
 
 	// Load client cert
 	certPEM, err := ioutil.ReadFile(certFile)
@@ -115,14 +125,14 @@ func HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caKeyFile string
 		zap.L().Fatal(err.Error())
 	}
 
-	policyEngine := policyexample.NewCustomPolicyResolver(networks)
+	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
 
 	return configurator.NewHybridCompactPKIWithDocker("Server1", networks, policyEngine, ExternalProcessor, nil, false, keyPEM, certPEM, caCertPEM, token, *extractor, remoteEnforcer, killContainerError)
 
 }
 
 // TriremeWithCompactPKI is a helper method to created a PKI implementation of Trireme
-func TriremeWithCompactPKI(keyFile, certFile, caCertFile, caKeyFile string, networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool) (trireme.Trireme, monitor.Monitor) {
+func TriremeWithCompactPKI(keyFile, certFile, caCertFile, caKeyFile string, networks []string, extractor *dockermonitor.DockerMetadataExtractor, remoteEnforcer bool, killContainerError bool, policyFile string) (trireme.Trireme, monitor.Monitor) {
 
 	// Load client cert
 	certPEM, err := ioutil.ReadFile(certFile)
@@ -157,7 +167,7 @@ func TriremeWithCompactPKI(keyFile, certFile, caCertFile, caKeyFile string, netw
 		zap.L().Fatal(err.Error())
 	}
 
-	policyEngine := policyexample.NewCustomPolicyResolver(networks)
+	policyEngine := policyexample.NewCustomPolicyResolver(networks, policyFile)
 
 	return configurator.NewCompactPKIWithDocker("Server1", networks, policyEngine, ExternalProcessor, nil, false, keyPEM, certPEM, caCertPEM, token, *extractor, remoteEnforcer, killContainerError)
 

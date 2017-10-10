@@ -83,6 +83,9 @@ func main() {
         [--usePKI]
         [--hybrid|--remote|--local|--cni]
 				[--influxdb]
+				[--db-user=<user>]
+        [--db-pass=<pass>]
+        [--db-address=<address>]
         [--swarm|--extractor <metadatafile>]
         [--keyFile=<keyFile>]
         [--certFile=<certFile>]
@@ -100,6 +103,9 @@ func main() {
     --label=<keyvalue>                     The metadata/labels associated with a service.
     --usePKI                               Use PKI for Trireme [default: false].
 		--influxdb                             Use InluxDB to collect stats. [make sure trireme-statistics is up and running].
+		--db-user=<user>          Username of the database [default: aporeto].
+			--db-pass=<pass>         Password of the database [default: aporeto].
+			--db-address=<address>   Address to connect to DB [default: http://0.0.0.0:8086]
     --certFile=<certFile>                  Certificate file [default: certs/cert.pem].
     --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
     --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].

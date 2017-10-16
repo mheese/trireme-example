@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 
 	"go.uber.org/zap"
 
@@ -47,49 +46,7 @@ func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProc
 }
 
 func processCmdArgs(arguments map[string]interface{}) error {
-
-	if arguments["run"].(bool) {
-
-		var command string
-		if value, ok := arguments["<command>"]; ok && value != nil {
-			command = value.(string)
-		}
-
-		var labels []string
-		if value, ok := arguments["--label"]; ok && value != nil {
-			labels = value.([]string)
-		}
-
-		var serviceName string
-		if value, ok := arguments["--service-name"]; ok && value != nil {
-			serviceName = value.(string)
-		}
-
-		var ports string
-		if value, ok := arguments["--ports"]; ok && value != nil {
-			ports = value.(string)
-		}
-
-		portsSlice := []string{"0"}
-		if len(ports) > 0 {
-			portsSlice = strings.Split(ports, ",")
-		}
-
-		var params []string
-		if value, ok := arguments["<params>"]; ok && value != nil {
-			params = append(params, value.([]string)...)
-		}
-
-		return systemdutil.ExecuteCommandWithParameters(command, params, "", serviceName, portsSlice, labels)
-	}
-
-	var cgroup string
-	if value, ok := arguments["<cgroup>"]; ok && value != nil {
-		cgroup = value.(string)
-	}
-
-	return systemdutil.ExecuteCommandWithParameters("", nil, cgroup, "", nil, nil)
-
+	return systemdutil.ExecuteCommandFromArguments(arguments)
 }
 
 // processDaemonArgs is responsible for creating a trireme daemon
@@ -116,6 +73,8 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 		}
 	}
 
+	policyFile := arguments["--policy"].(string)
+
 	targetNetworks := []string{}
 	if len(arguments["--target-networks"].([]string)) > 0 {
 		zap.L().Info("Target Networks", zap.Strings("networks", arguments["--target-networks"].([]string)))
@@ -135,10 +94,10 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 				zap.String("ca", caCertFile),
 				zap.String("ca", caCertKeyFile),
 			)
-			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError)
+			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
 		} else {
 			zap.L().Info("Setting up trireme with PSK")
-			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError)
+			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
 		}
 	} else { // Hybrid mode
 		if arguments["--usePKI"].(bool) {
@@ -152,9 +111,9 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 				zap.String("ca", caCertFile),
 				zap.String("ca", caCertKeyFile),
 			)
-			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError)
+			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile)
 		} else {
-			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError)
+			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile)
 			if rm == nil {
 				zap.L().Fatal("Failed to create remote monitor for hybrid")
 			}
@@ -164,7 +123,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 
 	if arguments["--cni"].(bool) {
 		zap.L().Info("Setting up CNI trireme with PSK")
-		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError)
+		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile)
 	}
 
 	if t == nil {

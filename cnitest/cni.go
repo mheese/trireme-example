@@ -35,6 +35,7 @@ func main() {
 	rpcmon, err := rpcmonitor.NewRPCMonitor(
 		rpcmonitor.DefaultRPCAddress,
 		eventCollector,
+		false,
 	)
 	if err != nil {
 		zap.L().Fatal("Failed to initialize RPC monitor", zap.Error(err))

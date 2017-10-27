@@ -1,7 +1,6 @@
 package constructors
 
 import (
-	"crypto/ecdsa"
 	"encoding/pem"
 	"io/ioutil"
 
@@ -178,17 +177,13 @@ func createTxtToken(caKeyPEM, caPEM, certPEM []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	caCert, err := crypto.LoadCertificate(caPEM)
-	if err != nil {
-		return nil, err
-	}
 
 	clientCert, err := crypto.LoadCertificate(certPEM)
 	if err != nil {
 		return nil, err
 	}
 
-	p := pkiverifier.NewConfig(caCert.PublicKey.(*ecdsa.PublicKey), caKey, -1)
+	p := pkiverifier.NewPKIIssuer(caKey)
 	token, err := p.CreateTokenFromCertificate(clientCert)
 	if err != nil {
 		return nil, err

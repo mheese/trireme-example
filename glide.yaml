@@ -1,7 +1,6 @@
 package: github.com/aporeto-inc/trireme-example
 description: ""
 import:
-
   ## Aporeto
 - package: github.com/aporeto-inc/trireme
   version: a2a5677b9a9e64b62c191ea09e575d33933b00c4

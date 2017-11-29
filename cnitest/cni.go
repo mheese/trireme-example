@@ -5,12 +5,12 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/aporeto-inc/trireme/collector"
-	"github.com/aporeto-inc/trireme/constants"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/monitor/cnimonitor"
-	"github.com/aporeto-inc/trireme/monitor/rpcmonitor"
-	"github.com/aporeto-inc/trireme/policy"
+	"github.com/aporeto-inc/trireme-lib/collector"
+	"github.com/aporeto-inc/trireme-lib/constants"
+	"github.com/aporeto-inc/trireme-lib/monitor"
+	"github.com/aporeto-inc/trireme-lib/monitor/cnimonitor"
+	"github.com/aporeto-inc/trireme-lib/monitor/rpcmonitor"
+	"github.com/aporeto-inc/trireme-lib/policy"
 	"go.uber.org/zap"
 )
 

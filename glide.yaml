@@ -3,12 +3,31 @@ description: ""
 import:
 
   ## Aporeto
-- package: github.com/aporeto-inc/trireme
-  version: 2.x
+- package: github.com/aporeto-inc/trireme-lib
+  version: 3.x
+  subpackages:
+  - cmd/remoteenforcer
+  - cmd/systemdutil
+  - collector
+  - configurator
+  - constants
+  - crypto
+  - enforcer
+  - enforcer/utils/pkiverifier
+  - monitor
+  - monitor/cliextractor
+  - monitor/cnimonitor
+  - monitor/dockermonitor
+  - monitor/rpcmonitor
+  - policy
+  - processmon
 
   ## 3rd Party
 - package: github.com/docker/docker
   version: ^1.13.x
+  subpackages:
+  - api/types
+  - client
 - package: github.com/docopt/docopt-go
   version: ^0.6.2
 - package: go.uber.org/zap

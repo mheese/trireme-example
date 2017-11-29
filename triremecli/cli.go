@@ -10,14 +10,12 @@ import (
 	"github.com/aporeto-inc/trireme-example/constructors"
 	"github.com/aporeto-inc/trireme-example/extractors"
 
-	"github.com/aporeto-inc/trireme"
-	"github.com/aporeto-inc/trireme/cmd/remoteenforcer"
-	"github.com/aporeto-inc/trireme/cmd/systemdutil"
-	"github.com/aporeto-inc/trireme/enforcer"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/monitor/cliextractor"
-	"github.com/aporeto-inc/trireme/monitor/dockermonitor"
-	"github.com/aporeto-inc/trireme/processmon"
+	"github.com/aporeto-inc/trireme-lib"
+	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
+	"github.com/aporeto-inc/trireme-lib/enforcer"
+	"github.com/aporeto-inc/trireme-lib/monitor"
+	"github.com/aporeto-inc/trireme-lib/monitor/cliextractor"
+	"github.com/aporeto-inc/trireme-lib/monitor/dockermonitor"
 )
 
 // KillContainerOnError defines if the Container is getting killed if the policy Application resulted in an error
@@ -28,7 +26,7 @@ func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProc
 
 	if arguments["enforce"].(bool) {
 		// Run enforcer and exit
-		return remoteenforcer.LaunchRemoteEnforcer(processor)
+		return trireme.LaunchRemoteEnforcer(processor)
 	}
 
 	if arguments["run"].(bool) || arguments["<cgroup>"] != nil {
@@ -59,7 +57,7 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 	var customExtractor dockermonitor.DockerMetadataExtractor
 
 	// Setup incoming args
-	processmon.GlobalCommandArgs = arguments
+	trireme.SetupCommandArgs(false, false, arguments)
 
 	if arguments["--swarm"].(bool) {
 		zap.L().Info("Using Docker Swarm extractor")

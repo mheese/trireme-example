@@ -12,7 +12,7 @@ import (
 
 	trireme "github.com/aporeto-inc/trireme-lib"
 	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
-	"github.com/aporeto-inc/trireme-lib/enforcer"
+	"github.com/aporeto-inc/trireme-lib/enforcer/packetprocessor"
 	"github.com/aporeto-inc/trireme-lib/monitor"
 	"github.com/aporeto-inc/trireme-lib/monitor/cliextractor"
 	"github.com/aporeto-inc/trireme-lib/monitor/dockermonitor"
@@ -22,7 +22,7 @@ import (
 const KillContainerOnError = true
 
 // ProcessArgs handles all commands options for trireme
-func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) (err error) {
+func ProcessArgs(arguments map[string]interface{}, processor packetprocessor.PacketProcessor) (err error) {
 
 	if arguments["enforce"].(bool) {
 		// Run enforcer and exit
@@ -50,7 +50,7 @@ func processCmdArgs(arguments map[string]interface{}) error {
 }
 
 // processDaemonArgs is responsible for creating a trireme daemon
-func processDaemonArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) {
+func processDaemonArgs(arguments map[string]interface{}, processor packetprocessor.PacketProcessor) {
 
 	var t trireme.Trireme
 	var m monitor.Monitor

@@ -59,7 +59,8 @@ func processDaemonArgs(arguments map[string]interface{}, processor packetprocess
 	var customExtractor dockermonitor.DockerMetadataExtractor
 
 	// Setup incoming args
-	processmon.GlobalCommandArgs = arguments
+	// TODO: Why was this here ?
+	// processmon.GlobalCommandArgs = arguments
 
 	if arguments["--swarm"].(bool) {
 		zap.L().Info("Using Docker Swarm extractor")

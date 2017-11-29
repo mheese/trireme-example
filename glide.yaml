@@ -3,7 +3,7 @@ description: ""
 import:
 
   ## Aporeto
-- package: github.com/aporeto-inc/trireme
+- package: github.com/aporeto-inc/trireme-lib
   version: 2.x.x
 
   ## 3rd Party

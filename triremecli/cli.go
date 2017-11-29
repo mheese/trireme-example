@@ -10,14 +10,14 @@ import (
 	"github.com/aporeto-inc/trireme-example/constructors"
 	"github.com/aporeto-inc/trireme-example/extractors"
 
-	"github.com/aporeto-inc/trireme"
-	"github.com/aporeto-inc/trireme/cmd/remoteenforcer"
-	"github.com/aporeto-inc/trireme/cmd/systemdutil"
-	"github.com/aporeto-inc/trireme/enforcer"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/monitor/cliextractor"
-	"github.com/aporeto-inc/trireme/monitor/dockermonitor"
-	"github.com/aporeto-inc/trireme/processmon"
+	trireme "github.com/aporeto-inc/trireme-lib"
+	"github.com/aporeto-inc/trireme-lib/cmd/remoteenforcer"
+	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
+	"github.com/aporeto-inc/trireme-lib/enforcer"
+	"github.com/aporeto-inc/trireme-lib/monitor"
+	"github.com/aporeto-inc/trireme-lib/monitor/cliextractor"
+	"github.com/aporeto-inc/trireme-lib/monitor/dockermonitor"
+	"github.com/aporeto-inc/trireme-lib/processmon"
 )
 
 // KillContainerOnError defines if the Container is getting killed if the policy Application resulted in an error

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aporeto-inc/trireme/constants"
-	"github.com/aporeto-inc/trireme/policy"
+	"github.com/aporeto-inc/trireme-lib/constants"
+	"github.com/aporeto-inc/trireme-lib/policy"
 	"github.com/docker/docker/api/types"
 )
 

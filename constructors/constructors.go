@@ -6,14 +6,14 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/aporeto-inc/trireme"
-	"github.com/aporeto-inc/trireme/configurator"
-	"github.com/aporeto-inc/trireme/crypto"
-	"github.com/aporeto-inc/trireme/enforcer"
-	"github.com/aporeto-inc/trireme/enforcer/utils/pkiverifier"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/monitor/cnimonitor"
-	"github.com/aporeto-inc/trireme/monitor/dockermonitor"
+	trireme "github.com/aporeto-inc/trireme-lib"
+	"github.com/aporeto-inc/trireme-lib/configurator"
+	"github.com/aporeto-inc/trireme-lib/crypto"
+	"github.com/aporeto-inc/trireme-lib/enforcer"
+	"github.com/aporeto-inc/trireme-lib/enforcer/utils/pkiverifier"
+	"github.com/aporeto-inc/trireme-lib/monitor"
+	"github.com/aporeto-inc/trireme-lib/monitor/cnimonitor"
+	"github.com/aporeto-inc/trireme-lib/monitor/dockermonitor"
 
 	"github.com/aporeto-inc/trireme-example/policyexample"
 )

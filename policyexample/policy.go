@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aporeto-inc/trireme"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/policy"
+	trireme "github.com/aporeto-inc/trireme-lib"
+	"github.com/aporeto-inc/trireme-lib/monitor"
+	"github.com/aporeto-inc/trireme-lib/policy"
 	"go.uber.org/zap"
 )
 

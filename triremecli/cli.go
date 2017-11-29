@@ -11,13 +11,11 @@ import (
 	"github.com/aporeto-inc/trireme-example/extractors"
 
 	trireme "github.com/aporeto-inc/trireme-lib"
-	"github.com/aporeto-inc/trireme-lib/cmd/remoteenforcer"
 	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
 	"github.com/aporeto-inc/trireme-lib/enforcer"
 	"github.com/aporeto-inc/trireme-lib/monitor"
 	"github.com/aporeto-inc/trireme-lib/monitor/cliextractor"
 	"github.com/aporeto-inc/trireme-lib/monitor/dockermonitor"
-	"github.com/aporeto-inc/trireme-lib/processmon"
 )
 
 // KillContainerOnError defines if the Container is getting killed if the policy Application resulted in an error
@@ -28,7 +26,9 @@ func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProc
 
 	if arguments["enforce"].(bool) {
 		// Run enforcer and exit
-		return remoteenforcer.LaunchRemoteEnforcer(processor)
+		if err := trireme.LaunchRemoteEnforcer(processor); err != nil {
+			zap.L().Fatal("Unable to start enforcer", zap.Error(err))
+		}
 	}
 
 	if arguments["run"].(bool) || arguments["<cgroup>"] != nil {

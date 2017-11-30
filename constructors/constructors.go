@@ -9,7 +9,7 @@ import (
 	"github.com/aporeto-inc/trireme-lib"
 	"github.com/aporeto-inc/trireme-lib/configurator"
 	"github.com/aporeto-inc/trireme-lib/crypto"
-	"github.com/aporeto-inc/trireme-lib/enforcer"
+	"github.com/aporeto-inc/trireme-lib/enforcer/packetprocessor"
 	"github.com/aporeto-inc/trireme-lib/enforcer/utils/pkiverifier"
 	"github.com/aporeto-inc/trireme-lib/monitor"
 	"github.com/aporeto-inc/trireme-lib/monitor/cnimonitor"
@@ -20,7 +20,7 @@ import (
 
 var (
 	// ExternalProcessor to use if needed
-	ExternalProcessor enforcer.PacketProcessor
+	ExternalProcessor packetprocessor.PacketProcessor
 )
 
 // TriremeWithPKI is a helper method to created a PKI implementation of Trireme

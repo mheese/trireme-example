@@ -5,9 +5,14 @@ DOCKER_IMAGE_NAME?=$(PROJECT_NAME)
 DOCKER_IMAGE_TAG?=$(BUILD_NUMBER)
 BIN_PATH := /usr/local/bin
 
-build:
+init:
 	glide install
+
+build_linux:
 	CGO_ENABLED=1 go build -a -installsuffix cgo
+
+build: init build_linux
+	@echo "Success"
 
 install: build
 	  sudo cp trireme-example $(BIN_PATH)/trireme-example
@@ -29,4 +34,4 @@ docker_push: docker_build
 
 clean:
 	rm -rf vendor
-	rm -rf docker/trireme-example 
+	rm -rf docker/trireme-example

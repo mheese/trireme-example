@@ -12,7 +12,7 @@ import (
 
 	"github.com/aporeto-inc/trireme-lib"
 	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
-	"github.com/aporeto-inc/trireme-lib/enforcer"
+	"github.com/aporeto-inc/trireme-lib/enforcer/packetprocessor"
 	"github.com/aporeto-inc/trireme-lib/monitor"
 	"github.com/aporeto-inc/trireme-lib/monitor/cliextractor"
 	"github.com/aporeto-inc/trireme-lib/monitor/dockermonitor"
@@ -22,7 +22,7 @@ import (
 const KillContainerOnError = true
 
 // ProcessArgs handles all commands options for trireme
-func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) (err error) {
+func ProcessArgs(arguments map[string]interface{}, processor packetprocessor.PacketProcessor) (err error) {
 
 	if arguments["enforce"].(bool) {
 		// Run enforcer and exit
@@ -48,7 +48,7 @@ func processCmdArgs(arguments map[string]interface{}) error {
 }
 
 // processDaemonArgs is responsible for creating a trireme daemon
-func processDaemonArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) {
+func processDaemonArgs(arguments map[string]interface{}, processor packetprocessor.PacketProcessor) {
 
 	var t trireme.Trireme
 	var m monitor.Monitor
@@ -57,7 +57,17 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 	var customExtractor dockermonitor.DockerMetadataExtractor
 
 	// Setup incoming args
-	trireme.SetupCommandArgs(false, false, arguments)
+	subProcessArgs := []string{}
+	logToConsole := false
+	logWithID := false
+	if _, ok := arguments["--log-to-console"]; ok && arguments["--log-to-console"].(bool) {
+		subProcessArgs = append(subProcessArgs, "--log-to-console")
+		logToConsole = true
+	} else {
+		logWithID = true
+		subProcessArgs = append(subProcessArgs, "--log-id")
+	}
+	trireme.SetupCommandArgs(logToConsole, logWithID, subProcessArgs)
 
 	if arguments["--swarm"].(bool) {
 		zap.L().Info("Using Docker Swarm extractor")

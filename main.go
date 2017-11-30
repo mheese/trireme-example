@@ -90,7 +90,7 @@ func main() {
       [--log-level=<log-level>]
       [--log-level-remote=<log-level>]
       [--log-to-console]
-    trireme-example enforce --log-id=<log-id>
+    trireme-example enforce (--log-id=<log-id>|--log-to-console)
       [--log-level=<log-level>]
     trireme-example <cgroup>
 

@@ -127,8 +127,9 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 	annotations := runtimeInfo.Tags()
 
 	excluded := []string{}
+	proxys := [][]string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, nil)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, proxys)
 
 	return containerPolicyInfo, nil
 }

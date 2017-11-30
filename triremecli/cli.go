@@ -59,8 +59,17 @@ func processDaemonArgs(arguments map[string]interface{}, processor packetprocess
 	var customExtractor dockermonitor.DockerMetadataExtractor
 
 	// Setup incoming args
-	// TODO: Why was this here ?
-	// processmon.GlobalCommandArgs = arguments
+	subProcessArgs := []string{}
+	logToConsole := false
+	logWithID := false
+	if _, ok := arguments["--log-to-console"]; ok && arguments["--log-to-console"].(bool) {
+		subProcessArgs = append(subProcessArgs, "--log-to-console")
+		logToConsole = true
+	} else {
+		logWithID = true
+		subProcessArgs = append(subProcessArgs, "--log-id")
+	}
+	trireme.SetupCommandArgs(logToConsole, logWithID, subProcessArgs)
 
 	if arguments["--swarm"].(bool) {
 		zap.L().Info("Using Docker Swarm extractor")

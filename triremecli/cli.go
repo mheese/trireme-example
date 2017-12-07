@@ -81,57 +81,52 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 		targetNetworks = arguments["--target-networks"].([]string)
 	}
 
-	if !arguments["--hybrid"].(bool) {
-		remote := arguments["--remote"].(bool)
-		if arguments["--usePKI"].(bool) {
-			keyFile := arguments["--keyFile"].(string)
-			certFile := arguments["--certFile"].(string)
-			caCertFile := arguments["--caCertFile"].(string)
-			caCertKeyFile := arguments["--caKeyFile"].(string)
-			zap.L().Info("Setting up trireme with PKI",
-				zap.String("key", keyFile),
-				zap.String("cert", certFile),
-				zap.String("ca", caCertFile),
-				zap.String("ca", caCertKeyFile),
-			)
-			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
-		} else {
-			zap.L().Info("Setting up trireme with PSK")
-			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
-		}
-	} else { // Hybrid mode
-		if arguments["--usePKI"].(bool) {
-			keyFile := arguments["--keyFile"].(string)
-			certFile := arguments["--certFile"].(string)
-			caCertFile := arguments["--caCertFile"].(string)
-			caCertKeyFile := arguments["--caKeyFile"].(string)
-			zap.L().Info("Setting up trireme with Compact PKI",
-				zap.String("key", keyFile),
-				zap.String("cert", certFile),
-				zap.String("ca", caCertFile),
-				zap.String("ca", caCertKeyFile),
-			)
-			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile)
-		} else {
-			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile)
-			if rm == nil {
-				zap.L().Fatal("Failed to create remote monitor for hybrid")
-			}
-			zap.L().Info("Setting up trireme with PSK")
-		}
+	// Setup options
+	cni := constructors.OptMonitor(
+		constructors.SubOptMonitorCNI(),
+	)
+	if !arguments["--cni"].(bool) {
+		cni = nil
 	}
 
-	if arguments["--cni"].(bool) {
-		zap.L().Info("Setting up CNI trireme with PSK")
-		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile)
+	remote := false
+	hybrid := constructors.OptHybrid()
+	if !arguments["--hybrid"].(bool) {
+		remote = arguments["--remote"].(bool)
+		hybrid = nil
+	} else {
+		zap.L().Info("Setting up trireme with Hybrid enforcement")
 	}
+
+	secretsOption := constructors.OptPSK([]byte("THIS IS A BAD PASSWORD"))
+	if arguments["--usePKI"].(bool) {
+		zap.L().Info("Setting up trireme with PKI")
+		keyFile := arguments["--keyFile"].(string)
+		certFile := arguments["--certFile"].(string)
+		caCertFile := arguments["--caCertFile"].(string)
+		caCertKeyFile := arguments["--caKeyFile"].(string)
+		zap.L().Info("Setting up trireme with PKI",
+			zap.String("key", keyFile),
+			zap.String("cert", certFile),
+			zap.String("ca", caCertFile),
+			zap.String("ca", caCertKeyFile),
+		)
+		secretsOption = constructors.OptPKI(keyFile, certFile, caCertFile, caCertKeyFile)
+	} else {
+		zap.L().Info("Setting up trireme with PSK")
+	}
+
+	t := constructors.Trireme(
+		hybrid,
+		secretsOption,
+		constructors.OptExtractor(customExtractor),
+		constructors.OptPolicyFile(policyFile),
+		constructors.OptFlags(remote, KillContainerOnError),
+		constructors.OptTargetNetworks(targetNetworks),
+	)
 
 	if t == nil {
 		zap.L().Fatal("Failed to create Trireme")
-	}
-
-	if m == nil {
-		zap.L().Fatal("Failed to create Monitor")
 	}
 
 	c := make(chan os.Signal, 1)
@@ -142,23 +137,10 @@ func processDaemonArgs(arguments map[string]interface{}, processor enforcer.Pack
 		zap.L().Fatal("Failed to start Trireme")
 	}
 
-	if err := m.Start(); err != nil {
-		zap.L().Fatal("Failed to start monitor")
-	}
-
-	if rm != nil {
-		if err := rm.Start(); err != nil {
-			zap.L().Fatal("Failed to start remote monitor")
-		}
-	}
-
 	// Wait for Ctrl-C
 	<-c
 
 	fmt.Println("Bye!")
-	m.Stop() // nolint
+
 	t.Stop() // nolint
-	if rm != nil {
-		rm.Stop() // nolint
-	}
 }

@@ -4,7 +4,7 @@ import:
 
   ## Aporeto
 - package: github.com/aporeto-inc/trireme-lib
-  version: 3.x.x
+  version: 6.x.x
 
   ## 3rd Party
 - package: github.com/docker/docker

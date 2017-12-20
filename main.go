@@ -1,43 +1,57 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/aporeto-inc/trireme-example/triremecli"
 	docopt "github.com/docopt/docopt-go"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-// Configure configures the shared default logger.
-func Configure(level string) zap.Config {
+// setLogs setups Zap to the correct log level and correct output format.
+func setLogs(logFormat, logLevel string) error {
+	var zapConfig zap.Config
 
-	config := zap.NewDevelopmentConfig()
-	config.DisableStacktrace = true
+	switch logFormat {
+	case "json":
+		zapConfig = zap.NewProductionConfig()
+		zapConfig.DisableStacktrace = true
+	default:
+		zapConfig = zap.NewDevelopmentConfig()
+		zapConfig.DisableStacktrace = true
+		zapConfig.DisableCaller = true
+		zapConfig.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {}
+		zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
 
 	// Set the logger
-	switch level {
-	case "trace", "debug":
-		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	switch logLevel {
+	case "trace":
+		// TODO: Set the level correctly
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	case "debug":
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	case "info":
-		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	case "warn":
-		config.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
 	case "error":
-		config.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
 	case "fatal":
-		config.Level = zap.NewAtomicLevelAt(zap.FatalLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.FatalLevel)
 	default:
-		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
 
-	logger, err := config.Build()
+	logger, err := zapConfig.Build()
 	if err != nil {
-		panic(err)
+		return err
 	}
-
-	zap.ReplaceGlobals(logger)
 
 	go func(config zap.Config) {
 
@@ -62,7 +76,9 @@ func Configure(level string) zap.Config {
 		}
 	}(config)
 
-	return config
+	zap.ReplaceGlobals(logger)
+
+	return nil
 }
 
 func main() {
@@ -125,7 +141,9 @@ Logging Options:
 
 	LogLevel := arguments["--log-level"].(string)
 
-	Configure(LogLevel)
+	if err := setLogs("human", LogLevel); err != nil {
+		log.Fatalf("Error setting up logs: %s", err)
+	}
 
 	triremecli.ProcessArgs(arguments, nil) //nolint
 }

@@ -37,6 +37,7 @@ func ProcessArgs(config config.Configuration) (err error) {
 
 func processEnforce(config config.Configuration) (err error) {
 	// Run enforcer and exit
+
 	if err := trireme.LaunchRemoteEnforcer(processor); err != nil {
 		zap.L().Fatal("Unable to start enforcer", zap.Error(err))
 	}

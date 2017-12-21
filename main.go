@@ -10,6 +10,7 @@ import (
 
 	"github.com/aporeto-inc/trireme-csr/config"
 	"github.com/aporeto-inc/trireme-example/triremecli"
+	trireme "github.com/aporeto-inc/trireme-lib"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -106,9 +107,17 @@ func main() {
 		log.Fatalf("Error loading config: %s", err)
 	}
 
+	if config.Enforce {
+		_, _, config.LogLevel, config.LogFormat = trireme.GetLogParameters()
+	}
+
 	err = setLogs(config.LogFormat, config.LogLevel)
 	if err != nil {
 		log.Fatalf("Error setting up logs: %s", err)
+	}
+
+	if !config.Enforce && !config.Run {
+		banner("14", "20")
 	}
 
 	zap.L().Debug("Config used", zap.Any("Config", config))

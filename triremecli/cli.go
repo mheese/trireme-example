@@ -92,7 +92,7 @@ func processDaemon(config config.Configuration) (err error) {
 	triremeOptions = append(triremeOptions, trireme.OptionMonitors(monitorOptions))
 
 	// Setting up PolicyResolver
-	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.policyFile)
+	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.PolicyFile)
 	triremeOptions = append(triremeOptions, trireme.OptionPolicyResolver(policyEngine))
 
 	t := trireme.New(triremeNodeName, triremeOptions...)

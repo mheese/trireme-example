@@ -113,5 +113,5 @@ func main() {
 
 	zap.L().Debug("Config used", zap.Any("Config", config))
 
-	triremecli.ProcessArgs(config, nil) //nolint
+	triremecli.ProcessArgs(config)
 }

@@ -15,6 +15,7 @@ import (
 // TriremeEnvPrefix is the prefix used to provide configuration through env variables.
 const TriremeEnvPrefix = "TRIREME"
 
+// Configuration holds the whole configuration for Trireme-Example
 type Configuration struct {
 	// AuthType defines if Trireme uses PSK or PKI
 	AuthType string
@@ -23,6 +24,27 @@ type Configuration struct {
 	// RemoteEnforcer defines if the enforcer is spawned into each POD namespace
 	// or into the host default namespace.
 	RemoteEnforcer bool
+
+	// LinuxProcesses defines if we activate//police LinuxProcesses
+	LinuxProcesses bool
+
+	// Set of Policies to be used with this example.
+	PolicyFile string
+
+	// Launch Trireme-Example with support for Swarm
+	SwarmMode bool
+
+	// Launch Trireme-Example with support for CustomExtractor
+	CustomExtractor string
+
+	// KeyPath is the path to the Key in PEM encoded format
+	KeyPath string
+	// CertPath is the path to the Cert in PEM encoded format
+	CertPath string
+	// CaCertPath is the path to the CaCert in PEM encoded format
+	CaCertPath string
+	// CaKeyPath is the path to the CaKey in PEM encoded format
+	CaKeyPath string
 
 	TriremeNetworks       string
 	ParsedTriremeNetworks []string
@@ -47,7 +69,15 @@ func LoadConfig() (*Configuration, error) {
 	flag.String("AuthType", "", "Authentication type: PKI/PSK")
 	flag.String("PSK", "", "PSK to use")
 	flag.Bool("RemoteEnforcer", true, "Use the Trireme Remote Enforcer.")
+	flag.Bool("LinuxProcesses", true, "LinuxProcesses defines if we activate//police LinuxProcesses.")
+	flag.String("PolicyFile", "policy.json", "Set of Policies to be used with this example")
+	flag.Bool("SwarmMode", false, "Launch Trireme-Example with support for Swarm")
+	flag.String("CustomExtractor", "", "Launch Trireme-Example with support for CustomExtractor")
 	flag.String("TriremeNetworks", "", "TriremeNetworks")
+	flag.String("KeyPath", "", "KeyPath is the path to the Key in PEM encoded format")
+	flag.String("CertPath", "", "CertPath is the path to the Cert in PEM encoded format")
+	flag.String("CaCertPath", "", "CaCertPath is the path to the CaCert in PEM encoded format")
+	flag.String("CaKeyPath", "", "CaKeyPath is the path to the CaKey in PEM encoded format")
 	flag.String("LogLevel", "", "Log level. Default to info (trace//debug//info//warn//error//fatal)")
 	flag.String("LogFormat", "", "Log Format. Default to human")
 	flag.Bool("Enforce", false, "Run Trireme-Example in Enforce mode.")
@@ -57,7 +87,15 @@ func LoadConfig() (*Configuration, error) {
 	viper.SetDefault("AuthType", "PSK")
 	viper.SetDefault("PSK", "PSK")
 	viper.SetDefault("RemoteEnforcer", true)
+	viper.SetDefault("LinuxProcesses", true)
+	viper.SetDefault("PolicyFile", "policy.json")
+	viper.SetDefault("SwarmMode", false)
+	viper.SetDefault("CustomExtractor", "")
 	viper.SetDefault("TriremeNetworks", "")
+	viper.SetDefault("KeyPath", "")
+	viper.SetDefault("CertPath", "")
+	viper.SetDefault("CaCertPath", "")
+	viper.SetDefault("CaKeyPath", "")
 	viper.SetDefault("LogLevel", "info")
 	viper.SetDefault("LogFormat", "human")
 	viper.SetDefault("Enforce", false)

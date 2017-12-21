@@ -29,8 +29,7 @@ func SwarmExtractor(info *types.ContainerJSON) (*policy.PURuntime, error) {
 
 		serviceID := info.Config.Labels["com.docker.swarm.service.id"]
 
-		serviceInspectOptions := types.ServiceInspectOptions{}
-		service, _, err := cli.ServiceInspectWithRaw(context.Background(), serviceID, serviceInspectOptions)
+		service, _, err := cli.ServiceInspectWithRaw(context.Background(), serviceID)
 		if err != nil {
 			return nil, fmt.Errorf("Failed get swarm labels: %s", err)
 		}

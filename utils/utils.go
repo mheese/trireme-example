@@ -4,16 +4,14 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 
-	trireme "github.com/aporeto-inc/trireme-lib"
 	"github.com/aporeto-inc/trireme-lib/enforcer/utils/pkiverifier"
 	"github.com/aporeto-inc/trireme-lib/enforcer/utils/secrets"
 	"github.com/aporeto-inc/trireme-lib/utils/crypto"
-	"github.com/influxdata/influxdb/monitor"
 	"go.uber.org/zap"
 )
 
 // LoadCompactPKI is a helper method to created a PKI implementation of Trireme
-func LoadCompactPKI(keyPath, certPath, caCertPath, caKeyPath string) (trireme.Trireme, monitor.Monitor, monitor.Monitor) (*CompactPKI, error){
+func LoadCompactPKI(keyPath, certPath, caCertPath, caKeyPath string) (*secrets.CompactPKI, error) {
 
 	// Load client cert
 	certPEM, err := ioutil.ReadFile(certPath)

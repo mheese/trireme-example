@@ -95,6 +95,7 @@ func processDaemon(config config.Configuration) (err error) {
 	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.PolicyFile)
 	triremeOptions = append(triremeOptions, trireme.OptionPolicyResolver(policyEngine))
 
+	triremeNodeName := "ExampleNodeName"
 	t := trireme.New(triremeNodeName, triremeOptions...)
 	if t == nil {
 		zap.L().Fatal("Unable to initialize trireme")

@@ -10,6 +10,7 @@ import (
 	"github.com/aporeto-inc/trireme-example/config"
 	"github.com/aporeto-inc/trireme-example/extractors"
 	"github.com/aporeto-inc/trireme-example/policyexample"
+	"github.com/aporeto-inc/trireme-example/utils"
 
 	trireme "github.com/aporeto-inc/trireme-lib"
 	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
@@ -23,10 +24,10 @@ const KillContainerOnError = true
 func ProcessArgs(config config.Configuration) (err error) {
 
 	if config.Enforce {
-		return ProcessEnforce(config)
+		return processEnforce(config)
 	}
 
-	if config.Run || arguments["<cgroup>"] != nil {
+	if config.Run {
 		// Execute a command or process a cgroup cleanup and exit
 		return processRun(config)
 	}
@@ -38,14 +39,14 @@ func ProcessArgs(config config.Configuration) (err error) {
 func processEnforce(config config.Configuration) (err error) {
 	// Run enforcer and exit
 
-	if err := trireme.LaunchRemoteEnforcer(processor); err != nil {
+	if err := trireme.LaunchRemoteEnforcer(nil); err != nil {
 		zap.L().Fatal("Unable to start enforcer", zap.Error(err))
 	}
 	return nil
 }
 
 func processRun(config config.Configuration) (err error) {
-	return systemdutil.ExecuteCommandFromArguments(arguments)
+	return systemdutil.ExecuteCommandFromArguments(config)
 }
 
 func processDaemon(config config.Configuration) (err error) {
@@ -74,20 +75,21 @@ func processDaemon(config config.Configuration) (err error) {
 	// Setting up extractor and monitor
 	monitorOptions := []trireme.MonitorOption{}
 
-	if config.Docker {
+	if config.DockerEnforcement {
+		dockerOptions := []trireme.DockerMonitorOption{}
 
-		if config.Swarm {
+		if config.SwarmMode {
 			dockerOptions = append(dockerOptions, trireme.SubOptionMonitorDockerExtractor(extractors.SwarmExtractor))
 		}
 
 		monitorOptions = append(monitorOptions, trireme.OptionMonitorDocker(dockerOptions))
 	}
 
-	if config.LinuxProcesses {
+	if config.LinuxProcessesEnforcement {
 		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxProcess())
 	}
 
-	triremeOptions = append(triremeOptions, trireme.OptopmMonitors(monitorOptions))
+	triremeOptions = append(triremeOptions, trireme.OptionMonitors(monitorOptions))
 
 	// Setting up PolicyResolver
 	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.policyFile)

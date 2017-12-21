@@ -25,8 +25,9 @@ type Configuration struct {
 	// or into the host default namespace.
 	RemoteEnforcer bool
 
+	DockerEnforcement bool
 	// LinuxProcesses defines if we activate//police LinuxProcesses
-	LinuxProcesses bool
+	LinuxProcessesEnforcement bool
 
 	// Set of Policies to be used with this example.
 	PolicyFile string

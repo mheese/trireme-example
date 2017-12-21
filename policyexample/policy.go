@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	trireme "github.com/aporeto-inc/trireme-lib"
-	"github.com/aporeto-inc/trireme-lib/monitor"
 	"github.com/aporeto-inc/trireme-lib/policy"
+	"github.com/aporeto-inc/trireme-lib/rpc/events"
 	"go.uber.org/zap"
 )
 
@@ -127,16 +127,15 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 	annotations := runtimeInfo.Tags()
 
 	excluded := []string{}
-	proxys := [][]string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, proxys)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, nil)
 
 	return containerPolicyInfo, nil
 }
 
 // HandlePUEvent implements the corresponding interface. We have no
 // state in this example
-func (p *CustomPolicyResolver) HandlePUEvent(context string, eventType monitor.Event) {
+func (p *CustomPolicyResolver) HandlePUEvent(context string, eventType events.Event) {
 
 	zap.L().Info("Handling container event",
 		zap.String("containerID", context),

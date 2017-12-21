@@ -1,17 +1,36 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/aporeto-inc/trireme-csr/config"
 	"github.com/aporeto-inc/trireme-example/triremecli"
-	docopt "github.com/docopt/docopt-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+func banner(version, revision string) {
+	fmt.Printf(`
+
+
+	  _____     _
+	 |_   _| __(_)_ __ ___ _ __ ___   ___
+	   | || '__| | '__/ _ \ '_'' _ \ / _ \
+	   | || |  | | | |  __/ | | | | |  __/
+	   |_||_|  |_|_|  \___|_| |_| |_|\___|
+
+
+_______________________________________________________________
+             %s - %s
+                                                 🚀  by Aporeto
+
+`, version, revision)
+}
 
 // setLogs setups Zap to the correct log level and correct output format.
 func setLogs(logFormat, logLevel string) error {
@@ -82,68 +101,17 @@ func setLogs(logFormat, logLevel string) error {
 }
 
 func main() {
+	config, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Error loading config: %s", err)
+	}
 
-	usage := `Command for launching programs with Trireme policy.
-
-  Usage:
-    trireme-example -h | --help
-    trireme-example --version
-    trireme-example run
-      [--service-name=<sname>]
-      [[--label=<keyvalue>]...]
-      [--ports=<ports>]
-      <command> [--] [<params>...]
-    trireme-example daemon
-      [--target-networks=<networks>...]
-      [--policy=<policyFile>]
-      [--usePKI]
-      [--hybrid|--remote|--local|--cni]
-      [--swarm|--extractor <metadatafile>]
-      [--keyFile=<keyFile>]
-      [--certFile=<certFile>]
-      [--caCertFile=<caCertFile>]
-      [--caKeyFile=<caKeyFile>]
-      [--log-level=<log-level>]
-      [--log-level-remote=<log-level>]
-      [--log-to-console]
-    trireme-example enforce (--log-id=<log-id>|--log-to-console)
-      [--log-level=<log-level>]
-    trireme-example <cgroup>
-
-  Options:
-    -h --help                              Show this help message and exit.
-    --version                              show version and exit.
-    --service-name=<sname>                 The name of the service to be launched.
-    --label=<keyvalue>                     The metadata/labels associated with a service.
-    --usePKI                               Use PKI for Trireme [default: false].
-    --certFile=<certFile>                  Certificate file [default: certs/cert.pem].
-    --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
-    --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].
-    --caKeyFile=<caKeyFile>                CA key [default: certs/ca-key.pem].
-    --hybrid                               Hybrid mode of deployment [default: false].
-    --remote                               Remote mode of deployment [default: false].
-    --cni                                  Remote mode of deployment [default: false].
-    --local                                Local mode of deployment [default: true].
-    --swarm                                Deploy Doccker Swarm metadata extractor [default: false].
-    --extractor                            External metadata extractor [default: ].
-    --policy=<policyFile>                  Policy file [default: policy.json].
-    --target-networks=<networks>...        The target networks that Trireme should apply authentication [default: ]
-    <cgroup>                               cgroup of process that are terminated.
-
-Logging Options:
-    --log-level=<log-level>                Log level [default: info].
-    --log-level-remote=<log-level>         Log level for remote enforcers [default: info].
-    --log-id=<log-id>                      Log identifier.
-    --log-to-console                       Log to console [default: true].
-  `
-
-	arguments, _ := docopt.Parse(usage, nil, true, "1.0.0rc2", false)
-
-	LogLevel := arguments["--log-level"].(string)
-
-	if err := setLogs("human", LogLevel); err != nil {
+	err = setLogs(config.LogFormat, config.LogLevel)
+	if err != nil {
 		log.Fatalf("Error setting up logs: %s", err)
 	}
 
-	triremecli.ProcessArgs(arguments, nil) //nolint
+	zap.L().Debug("Config used", zap.Any("Config", config))
+
+	triremecli.ProcessArgs(config, nil) //nolint
 }

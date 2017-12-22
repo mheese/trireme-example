@@ -6,168 +6,68 @@ import (
 	"os"
 	"strings"
 
-	trireme "github.com/aporeto-inc/trireme-lib"
-	"github.com/spf13/viper"
-
-	flag "github.com/spf13/pflag"
+	docopt "github.com/docopt/docopt-go"
 )
 
-// TriremeEnvPrefix is the prefix used to provide configuration through env variables.
-const TriremeEnvPrefix = "TRIREME"
+// GetArguments return the whole set of arguments for Trireme-Example
+func GetArguments() (map[string]interface{}, error) {
 
-// Configuration holds the whole configuration for Trireme-Example
-type Configuration struct {
-	// AuthType defines if Trireme uses PSK or PKI
-	AuthType string
-	// PSK is the PSK used for Trireme (if using PSK)
-	PSK string
-	// RemoteEnforcer defines if the enforcer is spawned into each POD namespace
-	// or into the host default namespace.
-	RemoteEnforcer bool
+	usage := `Command for launching programs with Trireme policy.
 
-	DockerEnforcement bool
-	// LinuxProcesses defines if we activate//police LinuxProcesses
-	LinuxProcessesEnforcement bool
+  Usage:
+    trireme-example -h | --help
+    trireme-example --version
+    trireme-example run
+      [--service-name=<sname>]
+      [[--label=<keyvalue>]...]
+      [--ports=<ports>]
+      <command> [--] [<params>...]
+    trireme-example daemon
+      [--target-networks=<networks>...]
+      [--policy=<policyFile>]
+      [--usePKI]
+      [--hybrid|--remote|--local|--cni]
+      [--swarm|--extractor <metadatafile>]
+      [--keyFile=<keyFile>]
+      [--certFile=<certFile>]
+      [--caCertFile=<caCertFile>]
+      [--caKeyFile=<caKeyFile>]
+      [--log-level=<log-level>]
+      [--log-level-remote=<log-level>]
+      [--log-to-console]
+    trireme-example enforce --log-id=<log-id>
+      [--log-level=<log-level>]
+    trireme-example <cgroup>
 
-	// Set of Policies to be used with this example.
-	PolicyFile string
+  Options:
+    -h --help                              Show this help message and exit.
+    --version                              show version and exit.
+    --service-name=<sname>                 The name of the service to be launched.
+    --label=<keyvalue>                     The metadata/labels associated with a service.
+    --usePKI                               Use PKI for Trireme [default: false].
+    --certFile=<certFile>                  Certificate file [default: certs/cert.pem].
+    --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
+    --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].
+    --caKeyFile=<caKeyFile>                CA key [default: certs/ca-key.pem].
+    --hybrid                               Hybrid mode of deployment [default: false].
+    --remote                               Remote mode of deployment [default: false].
+    --cni                                  Remote mode of deployment [default: false].
+    --local                                Local mode of deployment [default: true].
+    --swarm                                Deploy Doccker Swarm metadata extractor [default: false].
+    --extractor                            External metadata extractor [default: ].
+    --policy=<policyFile>                  Policy file [default: policy.json].
+    --target-networks=<networks>...        The target networks that Trireme should apply authentication [default: ]
+    <cgroup>                               cgroup of process that are terminated.
 
-	// Launch Trireme-Example with support for Swarm
-	SwarmMode bool
+Logging Options:
+    --log-level=<log-level>                Log level [default: info].
+    --log-level-remote=<log-level>         Log level for remote enforcers [default: info].
+    --log-id=<log-id>                      Log identifier.
+    --log-to-console                       Log to console [default: true].
+  `
 
-	// Launch Trireme-Example with support for CustomExtractor
-	CustomExtractor string
+	return docopt.Parse(usage, nil, true, "1.0.0rc2", false)
 
-	// KeyPath is the path to the Key in PEM encoded format
-	KeyPath string
-	// CertPath is the path to the Cert in PEM encoded format
-	CertPath string
-	// CaCertPath is the path to the CaCert in PEM encoded format
-	CaCertPath string
-	// CaKeyPath is the path to the CaKey in PEM encoded format
-	CaKeyPath string
-
-	TriremeNetworks       string
-	ParsedTriremeNetworks []string
-
-	LogFormat string
-	LogLevel  string
-
-	// Enforce defines if this process is an enforcer process (spawned into POD namespaces)
-	Enforce bool `mapstructure:"Enforce"`
-	// Run defines if this process is used to run a command
-	Run bool
-}
-
-func usage() {
-	flag.PrintDefaults()
-	os.Exit(2)
-}
-
-// LoadConfig returns a config ready to use
-func LoadConfig() (*Configuration, error) {
-	flag.Usage = usage
-	flag.String("AuthType", "", "Authentication type: PKI/PSK")
-	flag.String("PSK", "", "PSK to use")
-	flag.Bool("RemoteEnforcer", true, "Use the Trireme Remote Enforcer.")
-	flag.Bool("LinuxProcesses", true, "LinuxProcesses defines if we activate//police LinuxProcesses.")
-	flag.String("PolicyFile", "policy.json", "Set of Policies to be used with this example")
-	flag.Bool("SwarmMode", false, "Launch Trireme-Example with support for Swarm")
-	flag.String("CustomExtractor", "", "Launch Trireme-Example with support for CustomExtractor")
-	flag.String("TriremeNetworks", "", "TriremeNetworks")
-	flag.String("KeyPath", "", "KeyPath is the path to the Key in PEM encoded format")
-	flag.String("CertPath", "", "CertPath is the path to the Cert in PEM encoded format")
-	flag.String("CaCertPath", "", "CaCertPath is the path to the CaCert in PEM encoded format")
-	flag.String("CaKeyPath", "", "CaKeyPath is the path to the CaKey in PEM encoded format")
-	flag.String("LogLevel", "", "Log level. Default to info (trace//debug//info//warn//error//fatal)")
-	flag.String("LogFormat", "", "Log Format. Default to human")
-	flag.Bool("Enforce", false, "Run Trireme-Example in Enforce mode.")
-	flag.Bool("Run", false, "Run Trireme-Example in Run mode.")
-
-	// Setting up default configuration
-	viper.SetDefault("AuthType", "PSK")
-	viper.SetDefault("PSK", "PSK")
-	viper.SetDefault("RemoteEnforcer", true)
-	viper.SetDefault("LinuxProcesses", true)
-	viper.SetDefault("PolicyFile", "policy.json")
-	viper.SetDefault("SwarmMode", false)
-	viper.SetDefault("CustomExtractor", "")
-	viper.SetDefault("TriremeNetworks", "")
-	viper.SetDefault("KeyPath", "")
-	viper.SetDefault("CertPath", "")
-	viper.SetDefault("CaCertPath", "")
-	viper.SetDefault("CaKeyPath", "")
-	viper.SetDefault("LogLevel", "info")
-	viper.SetDefault("LogFormat", "human")
-	viper.SetDefault("Enforce", false)
-	viper.SetDefault("Run", false)
-
-	// Binding ENV variables
-	// Each config will be of format TRIREME_XYZ as env variable, where XYZ
-	// is the upper case config.
-	viper.SetEnvPrefix(TriremeEnvPrefix)
-	viper.AutomaticEnv()
-
-	// Binding CLI flags.
-	flag.Parse()
-	viper.BindPFlags(flag.CommandLine)
-
-	var config Configuration
-
-	// Manual check for Enforce mode as this is given as a simple argument
-	if len(os.Args) > 1 {
-		if os.Args[1] == "enforce" {
-			config.Enforce = true
-			config.LogLevel = viper.GetString("LogLevel")
-			return &config, nil
-		}
-	}
-
-	err := viper.Unmarshal(&config)
-	if err != nil {
-		return nil, fmt.Errorf("Error unmarshalling:%s", err)
-	}
-
-	err = validateConfig(&config)
-	if err != nil {
-		return nil, err
-	}
-
-	// unset current Trireme Env variables as to keep a clean state for the remote enforcer process.
-	unsetEnvVar(TriremeEnvPrefix)
-
-	setupTriremeSubProcessArgs(&config)
-
-	return &config, nil
-}
-
-// setupTriremeSubProcessArgs setups the logs for the remote Enforcer
-func setupTriremeSubProcessArgs(config *Configuration) {
-	logToConsole := true
-	logWithID := false
-
-	trireme.SetLogParameters(logToConsole, logWithID, config.LogLevel, config.LogFormat)
-}
-
-// validateConfig is validating the Configuration struct.
-func validateConfig(config *Configuration) error {
-	// Validating AUTHTYPE
-	if config.AuthType != "PSK" && config.AuthType != "PKI" {
-		return fmt.Errorf("AuthType should be PSK or PKI")
-	}
-
-	// Validating PSK
-	if config.AuthType == "PSK" && config.PSK == "" {
-		return fmt.Errorf("PSK should be provided")
-	}
-
-	parsedTriremeNetworks, err := parseTriremeNets(config.TriremeNetworks)
-	if err != nil {
-		return fmt.Errorf("TargetNetwork is invalid: %s", err)
-	}
-	config.ParsedTriremeNetworks = parsedTriremeNetworks
-
-	return nil
 }
 
 // parseTriremeNets returns a parsed array of strings parsed based on white spaces between CIDR entries.

@@ -9,6 +9,50 @@ import (
 	docopt "github.com/docopt/docopt-go"
 )
 
+// Configuration holds the whole configuration for Trireme-Example
+type Configuration struct {
+	// AuthType defines if Trireme uses PSK or PKI
+	AuthType string
+	// PSK is the PSK used for Trireme (if using PSK)
+	PSK string
+	// RemoteEnforcer defines if the enforcer is spawned into each POD namespace
+	// or into the host default namespace.
+	RemoteEnforcer bool
+
+	DockerEnforcement bool
+	// LinuxProcesses defines if we activate//police LinuxProcesses
+	LinuxProcessesEnforcement bool
+
+	// Set of Policies to be used with this example.
+	PolicyFile string
+
+	// Launch Trireme-Example with support for Swarm
+	SwarmMode bool
+
+	// Launch Trireme-Example with support for CustomExtractor
+	CustomExtractor string
+
+	// KeyPath is the path to the Key in PEM encoded format
+	KeyPath string
+	// CertPath is the path to the Cert in PEM encoded format
+	CertPath string
+	// CaCertPath is the path to the CaCert in PEM encoded format
+	CaCertPath string
+	// CaKeyPath is the path to the CaKey in PEM encoded format
+	CaKeyPath string
+
+	TriremeNetworks       string
+	ParsedTriremeNetworks []string
+
+	LogFormat string
+	LogLevel  string
+
+	// Enforce defines if this process is an enforcer process (spawned into POD namespaces)
+	Enforce bool `mapstructure:"Enforce"`
+	// Run defines if this process is used to run a command
+	Run bool
+}
+
 // GetArguments return the whole set of arguments for Trireme-Example
 func GetArguments() (map[string]interface{}, error) {
 

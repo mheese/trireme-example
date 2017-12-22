@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aporeto-inc/trireme-csr/config"
+	"github.com/aporeto-inc/trireme-example/config"
 	"github.com/aporeto-inc/trireme-example/triremecli"
 	trireme "github.com/aporeto-inc/trireme-lib"
 	"go.uber.org/zap"

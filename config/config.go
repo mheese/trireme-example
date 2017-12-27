@@ -53,8 +53,8 @@ type Configuration struct {
 	Run bool
 }
 
-// GetArguments return the whole set of arguments for Trireme-Example
-func GetArguments() (map[string]interface{}, error) {
+// getArguments return the whole set of arguments for Trireme-Example
+func getArguments() (map[string]interface{}, error) {
 
 	usage := `Command for launching programs with Trireme policy.
 
@@ -112,6 +112,12 @@ Logging Options:
 
 	return docopt.Parse(usage, nil, true, "1.0.0rc2", false)
 
+}
+
+// LoadConfig returns a Configuration struct ready to use.
+// TODO: It uses DocOpt as the end config manager. Eventually move everything in Viper.
+func LoadConfig() (*Configuration, error) {
+	return nil, nil
 }
 
 // parseTriremeNets returns a parsed array of strings parsed based on white spaces between CIDR entries.

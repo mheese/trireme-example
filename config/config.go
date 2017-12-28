@@ -9,10 +9,20 @@ import (
 	docopt "github.com/docopt/docopt-go"
 )
 
+// AuthType is a type that holds an Authentication method
+type AuthType int
+
+const (
+	// PSK is the Authentication method that relies on a preshared Key (unsecure)
+	PSK AuthType = iota + 1
+	// PKI is the Authentication methid that relies on a PKI
+	PKI
+)
+
 // Configuration holds the whole configuration for Trireme-Example
 type Configuration struct {
 	// AuthType defines if Trireme uses PSK or PKI
-	AuthType string
+	Auth AuthType
 	// PSK is the PSK used for Trireme (if using PSK)
 	PSK string
 	// RemoteEnforcer defines if the enforcer is spawned into each POD namespace
@@ -72,7 +82,7 @@ func getArguments() (map[string]interface{}, error) {
       [--target-networks=<networks>...]
       [--policy=<policyFile>]
       [--usePKI]
-      [--hybrid|--remote|--local|--cni]
+      [--hybrid|--remote|--local]
       [--swarm|--extractor <metadatafile>]
       [--keyFile=<keyFile>]
       [--certFile=<certFile>]
@@ -97,7 +107,6 @@ func getArguments() (map[string]interface{}, error) {
     --caKeyFile=<caKeyFile>                CA key [default: certs/ca-key.pem].
     --hybrid                               Hybrid mode of deployment [default: false].
     --remote                               Remote mode of deployment [default: false].
-    --cni                                  Remote mode of deployment [default: false].
     --local                                Local mode of deployment [default: true].
     --swarm                                Deploy Doccker Swarm metadata extractor [default: false].
     --extractor                            External metadata extractor [default: ].
@@ -125,6 +134,62 @@ func LoadConfig() (*Configuration, error) {
 		return nil, err
 	}
 	config.Arguments = oldArgs
+
+	if oldArgs["run"].(bool) || oldArgs["<cgroup>"] != nil {
+		// Execute a command or process a cgroup cleanup and exit
+		config.Run = true
+	}
+
+	if oldArgs["enforce"].(bool) {
+		// Execute a command or process a cgroup cleanup and exit
+		config.Enforce = true
+	}
+
+	if len(oldArgs["--target-networks"].([]string)) > 0 {
+		config.ParsedTriremeNetworks = oldArgs["--target-networks"].([]string)
+	}
+
+	config.PolicyFile = oldArgs["--policy"].(string)
+
+	if oldArgs["--usePKI"].(bool) {
+		config.Auth = PKI
+		config.CertPath = oldArgs["--certFile"].(string)
+		config.KeyPath = oldArgs["--keyFile"].(string)
+		config.CaCertPath = oldArgs["--caCertFile"].(string)
+		config.CaKeyPath = oldArgs["--caKeyFile"].(string)
+
+	} else {
+		config.Auth = PSK
+		config.PSK = "BADPASS"
+	}
+
+	config.DockerEnforcement = true
+	if oldArgs["--hybrid"].(bool) {
+		config.LinuxProcessesEnforcement = true
+	}
+
+	if oldArgs["--remote"].(bool) {
+		config.RemoteEnforcer = true
+	}
+
+	if oldArgs["--local"].(bool) {
+		config.RemoteEnforcer = false
+	}
+
+	if oldArgs["--swarm"].(bool) {
+		config.SwarmMode = true
+	}
+
+	if oldArgs["--extractor"].(bool) {
+		config.CustomExtractor = oldArgs["metadatafile"].(string)
+	}
+
+	if oldArgs["--log-level"].(bool) {
+		config.LogLevel = oldArgs["--log-level"].(string)
+	}
+	if oldArgs["--log-format"].(bool) {
+		config.LogFormat = oldArgs["--log-format"].(string)
+	}
 
 	return config, nil
 }

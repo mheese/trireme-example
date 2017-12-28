@@ -46,7 +46,7 @@ func processEnforce(config config.Configuration) (err error) {
 }
 
 func processRun(config config.Configuration) (err error) {
-	return systemdutil.ExecuteCommandFromArguments(config)
+	return systemdutil.ExecuteCommandFromArguments(config.RunArguments)
 }
 
 func processDaemon(config config.Configuration) (err error) {

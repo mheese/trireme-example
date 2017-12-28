@@ -51,6 +51,8 @@ type Configuration struct {
 	Enforce bool `mapstructure:"Enforce"`
 	// Run defines if this process is used to run a command
 	Run bool
+	// Arguments is the retrocompatible format used to define the parameters//process to run
+	Arguments map[string]interface{}
 }
 
 // getArguments return the whole set of arguments for Trireme-Example
@@ -111,13 +113,20 @@ Logging Options:
   `
 
 	return docopt.Parse(usage, nil, true, "1.0.0rc2", false)
-
 }
 
 // LoadConfig returns a Configuration struct ready to use.
 // TODO: It uses DocOpt as the end config manager. Eventually move everything in Viper.
 func LoadConfig() (*Configuration, error) {
-	return nil, nil
+	config := &Configuration{}
+
+	oldArgs, err := getArguments()
+	if err != nil {
+		return nil, err
+	}
+	config.Arguments = oldArgs
+
+	return config, nil
 }
 
 // parseTriremeNets returns a parsed array of strings parsed based on white spaces between CIDR entries.

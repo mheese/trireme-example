@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/aporeto-inc/trireme-example/config"
+	"github.com/aporeto-inc/trireme-example/configuration"
 	"github.com/aporeto-inc/trireme-example/extractors"
 	"github.com/aporeto-inc/trireme-example/policyexample"
 	"github.com/aporeto-inc/trireme-example/utils"
@@ -21,7 +21,7 @@ import (
 const KillContainerOnError = true
 
 // ProcessArgs handles all commands options for trireme
-func ProcessArgs(config config.Configuration) (err error) {
+func ProcessArgs(config configuration.Configuration) (err error) {
 
 	if config.Enforce {
 		return processEnforce(config)
@@ -36,7 +36,7 @@ func ProcessArgs(config config.Configuration) (err error) {
 	return processDaemon(config)
 }
 
-func processEnforce(config config.Configuration) (err error) {
+func processEnforce(config configuration.Configuration) (err error) {
 	// Run enforcer and exit
 
 	if err := trireme.LaunchRemoteEnforcer(nil); err != nil {
@@ -45,22 +45,22 @@ func processEnforce(config config.Configuration) (err error) {
 	return nil
 }
 
-func processRun(config config.Configuration) (err error) {
-	return systemdutil.ExecuteCommandFromArguments(config.RunArguments)
+func processRun(config configuration.Configuration) (err error) {
+	return systemdutil.ExecuteCommandFromArguments(config.Arguments)
 }
 
-func processDaemon(config config.Configuration) (err error) {
+func processDaemon(config configuration.Configuration) (err error) {
 
 	triremeOptions := []trireme.Option{}
 
 	// Setting up Secret Auth type based on user config.
 	var triremesecret secrets.Secrets
-	if config.AuthType == "PSK" {
+	if config.Auth == configuration.PSK {
 		zap.L().Info("Initializing Trireme with PSK Auth. Should NOT be used in production")
 
 		triremesecret = secrets.NewPSKSecrets([]byte(config.PSK))
 
-	} else if config.AuthType == "PKI" {
+	} else if config.Auth == configuration.PKI {
 		zap.L().Info("Initializing Trireme with PKI Auth")
 
 		triremesecret, err = utils.LoadCompactPKI(config.KeyPath, config.CertPath, config.CaCertPath, config.CaKeyPath)
@@ -89,7 +89,7 @@ func processDaemon(config config.Configuration) (err error) {
 		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxProcess())
 	}
 
-	triremeOptions = append(triremeOptions, trireme.OptionMonitors(monitorOptions))
+	triremeOptions = append(triremeOptions, trireme.OptionMonitors(trireme.NewMonitor(monitorOptions)))
 
 	// Setting up PolicyResolver
 	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.PolicyFile)

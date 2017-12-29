@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aporeto-inc/trireme-example/config"
+	"github.com/aporeto-inc/trireme-example/configuration"
 	"github.com/aporeto-inc/trireme-example/triremecli"
 	trireme "github.com/aporeto-inc/trireme-lib"
 	"go.uber.org/zap"
@@ -102,7 +102,7 @@ func setLogs(logFormat, logLevel string) error {
 }
 
 func main() {
-	config, err := config.LoadConfig()
+	config, err := configuration.LoadConfig()
 	if err != nil {
 		log.Fatalf("Error loading config: %s", err)
 	}

@@ -82,14 +82,16 @@ func processDaemon(config configuration.Configuration) (err error) {
 			dockerOptions = append(dockerOptions, trireme.SubOptionMonitorDockerExtractor(extractors.SwarmExtractor))
 		}
 
-		monitorOptions = append(monitorOptions, trireme.OptionMonitorDocker(dockerOptions))
+		monitorOptions = append(monitorOptions, trireme.OptionMonitorDocker(dockerOptions...))
 	}
 
 	if config.LinuxProcessesEnforcement {
 		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxProcess())
 	}
 
-	triremeOptions = append(triremeOptions, trireme.OptionMonitors(trireme.NewMonitor(monitorOptions)))
+	triremeOptions = append(triremeOptions, trireme.OptionMonitors(
+		trireme.NewMonitor(monitorOptions...)),
+	)
 
 	// Setting up PolicyResolver
 	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.PolicyFile)

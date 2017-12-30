@@ -1,11 +1,6 @@
 package configuration
 
 import (
-	"fmt"
-	"net"
-	"os"
-	"strings"
-
 	docopt "github.com/docopt/docopt-go"
 )
 
@@ -21,6 +16,8 @@ const (
 
 // Configuration holds the whole configuration for Trireme-Example
 type Configuration struct {
+	// Arguments is the retrocompatible format used to define the parameters//process to run
+	Arguments map[string]interface{}
 	// AuthType defines if Trireme uses PSK or PKI
 	Auth AuthType
 	// PSK is the PSK used for Trireme (if using PSK)
@@ -33,11 +30,11 @@ type Configuration struct {
 	// LinuxProcesses defines if we activate//police LinuxProcesses
 	LinuxProcessesEnforcement bool
 
-	// Set of Policies to be used with this example.
-	PolicyFile string
-
 	// Launch Trireme-Example with support for Swarm
 	SwarmMode bool
+
+	// Set of Policies to be used with this example.
+	PolicyFile string
 
 	// Launch Trireme-Example with support for CustomExtractor
 	CustomExtractor string
@@ -61,8 +58,6 @@ type Configuration struct {
 	Enforce bool `mapstructure:"Enforce"`
 	// Run defines if this process is used to run a command
 	Run bool
-	// Arguments is the retrocompatible format used to define the parameters//process to run
-	Arguments map[string]interface{}
 }
 
 // getArguments return the whole set of arguments for Trireme-Example
@@ -192,36 +187,4 @@ func LoadConfig() (*Configuration, error) {
 	}
 
 	return config, nil
-}
-
-// parseTriremeNets returns a parsed array of strings parsed based on white spaces between CIDR entries.
-// An error is returned if any of the entries is not a valid IP CIDR.
-func parseTriremeNets(nets string) ([]string, error) {
-	resultNets := strings.Fields(nets)
-
-	// Validation of each networks.
-	for _, network := range resultNets {
-		_, _, err := net.ParseCIDR(network)
-		if err != nil {
-			return nil, fmt.Errorf("Invalid CIDR: %s", err)
-		}
-	}
-	return resultNets, nil
-}
-
-// unsetEnvVar unsets all env variables with a specific prefix.
-// Usage inside Trireme is to unset all Trireme env variables so
-// that the remote doesn't get confused.
-func unsetEnvVar(prefix string) {
-	env := os.Environ()
-	for _, e := range env {
-		if strings.HasPrefix(e, prefix) {
-			kv := strings.Split(e, "=")
-			if len(kv) > 0 {
-				if err := os.Unsetenv(kv[0]); err != nil {
-					continue
-				}
-			}
-		}
-	}
 }

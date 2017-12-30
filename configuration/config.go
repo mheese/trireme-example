@@ -22,16 +22,6 @@ type Configuration struct {
 	Auth AuthType
 	// PSK is the PSK used for Trireme (if using PSK)
 	PSK string
-	// RemoteEnforcer defines if the enforcer is spawned into each POD namespace
-	// or into the host default namespace.
-	RemoteEnforcer bool
-
-	DockerEnforcement bool
-	// LinuxProcesses defines if we activate//police LinuxProcesses
-	LinuxProcessesEnforcement bool
-
-	// Launch Trireme-Example with support for Swarm
-	SwarmMode bool
 
 	// Set of Policies to be used with this example.
 	PolicyFile string
@@ -53,6 +43,17 @@ type Configuration struct {
 
 	LogFormat string
 	LogLevel  string
+
+	// RemoteEnforcer defines if the enforcer is spawned into each POD namespace
+	// or into the host default namespace.
+	RemoteEnforcer bool
+
+	DockerEnforcement bool
+	// LinuxProcesses defines if we activate//police LinuxProcesses
+	LinuxProcessesEnforcement bool
+
+	// Launch Trireme-Example with support for Swarm
+	SwarmMode bool
 
 	// Enforce defines if this process is an enforcer process (spawned into POD namespaces)
 	Enforce bool `mapstructure:"Enforce"`

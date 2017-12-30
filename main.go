@@ -90,11 +90,11 @@ func setLogs(logFormat, logLevel string) error {
 				config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 				zap.L().Info("Log level elevated to debug")
 			} else {
-				zap.L().Info("Log level restored to original configuration", zap.String("level", level))
+				zap.L().Info("Log level restored to original configuration", zap.String("level", defaultLevel))
 				config.Level = defaultLevel
 			}
 		}
-	}(config)
+	}(zapConfig)
 
 	zap.ReplaceGlobals(logger)
 

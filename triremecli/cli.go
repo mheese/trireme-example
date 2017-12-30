@@ -21,7 +21,7 @@ import (
 const KillContainerOnError = true
 
 // ProcessArgs handles all commands options for trireme
-func ProcessArgs(config configuration.Configuration) (err error) {
+func ProcessArgs(config *configuration.Configuration) (err error) {
 
 	if config.Enforce {
 		return processEnforce(config)
@@ -36,7 +36,7 @@ func ProcessArgs(config configuration.Configuration) (err error) {
 	return processDaemon(config)
 }
 
-func processEnforce(config configuration.Configuration) (err error) {
+func processEnforce(config *configuration.Configuration) (err error) {
 	// Run enforcer and exit
 
 	if err := trireme.LaunchRemoteEnforcer(nil); err != nil {
@@ -45,11 +45,11 @@ func processEnforce(config configuration.Configuration) (err error) {
 	return nil
 }
 
-func processRun(config configuration.Configuration) (err error) {
+func processRun(config *configuration.Configuration) (err error) {
 	return systemdutil.ExecuteCommandFromArguments(config.Arguments)
 }
 
-func processDaemon(config configuration.Configuration) (err error) {
+func processDaemon(config *configuration.Configuration) (err error) {
 
 	triremeOptions := []trireme.Option{}
 

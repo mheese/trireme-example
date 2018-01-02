@@ -84,11 +84,11 @@ func getArguments() (map[string]interface{}, error) {
       [--certFile=<certFile>]
       [--caCertFile=<caCertFile>]
       [--caKeyFile=<caKeyFile>]
-      [--log-level=<log-level>]
+	  [--log-level=<log-level>]
       [--log-level-remote=<log-level>]
       [--log-to-console]
     trireme-example enforce --log-id=<log-id>
-      [--log-level=<log-level>]
+	  [--log-level=<log-level>]
     trireme-example <cgroup>
 
   Options:
@@ -181,7 +181,6 @@ func LoadConfig() (*Configuration, error) {
 	}
 
 	config.LogLevel = oldArgs["--log-level"].(string)
-	config.LogFormat = oldArgs["--log-format"].(string)
 
 	return config, nil
 }

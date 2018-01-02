@@ -1,6 +1,10 @@
 package configuration
 
 import (
+	"os"
+	"strings"
+
+	trireme "github.com/aporeto-inc/trireme-lib"
 	docopt "github.com/docopt/docopt-go"
 )
 
@@ -13,6 +17,9 @@ const (
 	// PKI is the Authentication methid that relies on a PKI
 	PKI
 )
+
+// TriremeEnvPrefix is the prefix used to provide configuration through env variables.
+const TriremeEnvPrefix = "TRIREME"
 
 // Configuration holds the whole configuration for Trireme-Example
 type Configuration struct {
@@ -182,5 +189,35 @@ func LoadConfig() (*Configuration, error) {
 
 	config.LogLevel = oldArgs["--log-level"].(string)
 
+	// unset current Trireme Env variables as to keep a clean state for the remote enforcer process.
+	unsetEnvVar(TriremeEnvPrefix)
+
+	setupTriremeSubProcessArgs(config)
+
 	return config, nil
+}
+
+// setupTriremeSubProcessArgs setups the logs for the remote Enforcer
+func setupTriremeSubProcessArgs(config *Configuration) {
+	logToConsole := true
+	logWithID := false
+
+	trireme.SetLogParameters(logToConsole, logWithID, config.LogLevel, config.LogFormat)
+}
+
+// unsetEnvVar unsets all env variables with a specific prefix.
+// Usage inside Trireme is to unset all Trireme env variables so
+// that the remote doesn't get confused.
+func unsetEnvVar(prefix string) {
+	env := os.Environ()
+	for _, e := range env {
+		if strings.HasPrefix(e, prefix) {
+			kv := strings.Split(e, "=")
+			if len(kv) > 0 {
+				if err := os.Unsetenv(kv[0]); err != nil {
+					continue
+				}
+			}
+		}
+	}
 }

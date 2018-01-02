@@ -180,10 +180,10 @@ func LoadConfig() (*Configuration, error) {
 		config.CustomExtractor = oldArgs["metadatafile"].(string)
 	}
 
-	if oldArgs["--log-level"].(bool) {
+	if oldArgs["--log-level"].(string {
 		config.LogLevel = oldArgs["--log-level"].(string)
 	}
-	if oldArgs["--log-format"].(bool) {
+	if oldArgs["--log-format"].(string) {
 		config.LogFormat = oldArgs["--log-format"].(string)
 	}
 

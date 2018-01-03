@@ -1,6 +1,7 @@
 package triremecli
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,6 +23,8 @@ const KillContainerOnError = true
 
 // ProcessArgs handles all commands options for trireme
 func ProcessArgs(config *configuration.Configuration) (err error) {
+
+	fmt.Println(config.Enforce, config.Run)
 
 	if config.Enforce {
 		return processEnforce(config)

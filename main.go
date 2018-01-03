@@ -108,6 +108,7 @@ func main() {
 	}
 
 	if config.Enforce {
+		fmt.Println("Enforce mode")
 		_, _, config.LogLevel, config.LogFormat = trireme.GetLogParameters()
 	}
 

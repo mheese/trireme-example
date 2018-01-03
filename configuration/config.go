@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -94,7 +95,7 @@ func getArguments() (map[string]interface{}, error) {
 	  [--log-level=<log-level>]
       [--log-level-remote=<log-level>]
       [--log-to-console]
-    trireme-example enforce --log-id=<log-id>
+    trireme-example enforce
 	  [--log-level=<log-level>]
     trireme-example <cgroup>
 
@@ -136,9 +137,10 @@ func LoadConfig() (*Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("%+v", oldArgs)
 	config.Arguments = oldArgs
 
-	if oldArgs["run"].(bool) || oldArgs["<cgroup>"] != nil {
+	if oldArgs["run"].(bool) {
 		// Execute a command or process a cgroup cleanup and exit
 		config.Run = true
 	}

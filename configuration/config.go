@@ -1,12 +1,13 @@
 package configuration
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	trireme "github.com/aporeto-inc/trireme-lib"
 	docopt "github.com/docopt/docopt-go"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // AuthType is a type that holds an Authentication method
@@ -137,7 +138,6 @@ func LoadConfig() (*Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("%+v", oldArgs)
 	config.Arguments = oldArgs
 
 	if oldArgs["run"].(bool) {
@@ -197,6 +197,25 @@ func LoadConfig() (*Configuration, error) {
 	setupTriremeSubProcessArgs(config)
 
 	return config, nil
+}
+
+// Fields returns a ready to dump zap.Fields containing all the configuration used.
+func (c *Configuration) Fields() []zapcore.Field {
+	fields := []zapcore.Field{
+		zap.String("ParsedTriremeNetworks", c.TriremeNetworks),
+		zap.Bool("RemoteEnforcer", c.RemoteEnforcer),
+		zap.Bool("DockerEnforcement", c.DockerEnforcement),
+		zap.Bool("LinuxProcessesEnforcement", c.LinuxProcessesEnforcement),
+		zap.Bool("SwarmMode", c.SwarmMode),
+	}
+
+	if c.Auth == PSK {
+		fields = append(fields, zap.String("AuthType", "PSK"))
+	} else {
+		fields = append(fields, zap.String("AuthType", "PKI"))
+	}
+
+	return fields
 }
 
 // setupTriremeSubProcessArgs setups the logs for the remote Enforcer

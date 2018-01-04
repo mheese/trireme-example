@@ -10,6 +10,7 @@ import (
 
 	"github.com/aporeto-inc/trireme-example/configuration"
 	"github.com/aporeto-inc/trireme-example/triremecli"
+	"github.com/aporeto-inc/trireme-example/versions"
 	trireme "github.com/aporeto-inc/trireme-lib"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -108,7 +109,6 @@ func main() {
 	}
 
 	if config.Enforce {
-		fmt.Println("Enforce mode")
 		_, _, config.LogLevel, config.LogFormat = trireme.GetLogParameters()
 	}
 
@@ -119,9 +119,9 @@ func main() {
 
 	if !config.Enforce && !config.Run {
 		banner("14", "20")
+		zap.L().Info("Current configuration", config.Fields()...)
+		zap.L().Info("Current libraties versions", versions.Fields()...)
 	}
-
-	zap.L().Debug("Config used", zap.Any("Config", config))
 
 	triremecli.ProcessArgs(config)
 }

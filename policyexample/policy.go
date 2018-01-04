@@ -201,14 +201,22 @@ func (p *CustomPolicyResolver) createDefaultRules(runtimeInfo policy.RuntimeRead
 	selectorList = append(selectorList, tagSelector)
 
 	for i, selector := range selectorList {
-		for _, clause := range selector.Clause {
+		for j, clause := range selector.Clause {
 			zap.L().Info("Trireme policy for container",
 				zap.String("name", runtimeInfo.Name()),
-				zap.Int("c", i),
+				zap.Int("selector", i),
+				zap.Int("clause", j),
 				zap.String("selector", fmt.Sprintf("%#v", clause)),
+				zap.String("policy", fmt.Sprintf("%#v", selector.Policy)),
 			)
 		}
 	}
+
+	zap.L().Info("Trireme tags for container",
+		zap.String("name", runtimeInfo.Name()),
+		zap.String("selector", fmt.Sprintf("%#v", runtimeInfo.Tags())),
+	)
+
 	return selectorList
 
 }

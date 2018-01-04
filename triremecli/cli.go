@@ -103,6 +103,7 @@ func processDaemon(config *configuration.Configuration) (err error) {
 	// Setting up PolicyResolver
 	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.PolicyFile)
 	triremeOptions = append(triremeOptions, trireme.OptionPolicyResolver(policyEngine))
+	triremeOptions = append(triremeOptions, trireme.OptionDisableMutualAuth())
 
 	triremeNodeName := "ExampleNodeName"
 	t := trireme.New(triremeNodeName, triremeOptions...)

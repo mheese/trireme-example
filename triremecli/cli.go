@@ -56,6 +56,10 @@ func processDaemon(config *configuration.Configuration) (err error) {
 
 	triremeOptions := []trireme.Option{}
 
+	if config.LogLevel == "trace" {
+		triremeOptions = append(triremeOptions, trireme.OptionPacketLogs())
+	}
+
 	// Setting up Secret Auth type based on user config.
 	var triremesecret secrets.Secrets
 	if config.Auth == configuration.PSK {

@@ -81,8 +81,13 @@ func getArguments() (map[string]interface{}, error) {
     trireme-example run
       [--service-name=<sname>]
       [[--label=<keyvalue>]...]
-      [--ports=<ports>]
-      <command> [--] [<params>...]
+	  [--ports=<ports>]
+	  [--networkonly]
+	  [--hostpolicy]
+	  <command> [--] [<params>...]
+	trireme-example rm
+	  [--service-id=<id>]
+	  [--service-name=<sname>]
     trireme-example daemon
       [--target-networks=<networks>...]
       [--policy=<policyFile>]
@@ -116,7 +121,10 @@ func getArguments() (map[string]interface{}, error) {
     --swarm                                Deploy Doccker Swarm metadata extractor [default: false].
     --extractor                            External metadata extractor [default: ].
     --policy=<policyFile>                  Policy file [default: policy.json].
-    --target-networks=<networks>...        The target networks that Trireme should apply authentication [default: ]
+	--target-networks=<networks>...        The target networks that Trireme should apply authentication [default: ].
+	--ports=<ports>                        Ports that the executed service is listening to [default ].
+	--networkonly                          Control traffic from the network only and not from applications [default false].
+	--hostpolicy                           Default control of the base namespace [default false].
     <cgroup>                               cgroup of process that are terminated.
 
 Logging Options:
@@ -140,7 +148,7 @@ func LoadConfig() (*Configuration, error) {
 	}
 	config.Arguments = oldArgs
 
-	if oldArgs["run"].(bool) {
+	if oldArgs["run"].(bool) || oldArgs["rm"].(bool) || oldArgs["<cgroup>"] != nil {
 		// Execute a command or process a cgroup cleanup and exit
 		config.Run = true
 	}

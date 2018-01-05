@@ -9,6 +9,6 @@ import (
 func Fields() []zapcore.Field {
 	return []zapcore.Field{
 		zap.String("Version", VERSION),
-		zap.String("Revision", VERSION),
+		zap.String("Revision", REVISION),
 	}
 }

@@ -115,9 +115,8 @@ func getArguments() (map[string]interface{}, error) {
     --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
     --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].
     --caKeyFile=<caKeyFile>                CA key [default: certs/ca-key.pem].
-    --hybrid                               Hybrid mode of deployment [default: false].
-    --remote                               Remote mode of deployment [default: false].
-    --local                                Local mode of deployment [default: true].
+    --hybrid                               Hybrid mode of deployment (docker+processes) [default: false].
+    --local                                Local mode of deployment () [default: false].
     --swarm                                Deploy Doccker Swarm metadata extractor [default: false].
     --extractor                            External metadata extractor [default: ].
     --policy=<policyFile>                  Policy file [default: policy.json].
@@ -141,6 +140,9 @@ Logging Options:
 // TODO: It uses DocOpt as the end config manager. Eventually move everything in Viper.
 func LoadConfig() (*Configuration, error) {
 	config := &Configuration{}
+
+	// By default use a remote enforcer for Docker.
+	config.RemoteEnforcer = true
 
 	oldArgs, err := getArguments()
 	if err != nil {
@@ -179,10 +181,6 @@ func LoadConfig() (*Configuration, error) {
 	config.DockerEnforcement = true
 	if oldArgs["--hybrid"].(bool) {
 		config.LinuxProcessesEnforcement = true
-	}
-
-	if oldArgs["--remote"].(bool) {
-		config.RemoteEnforcer = true
 	}
 
 	if oldArgs["--local"].(bool) {

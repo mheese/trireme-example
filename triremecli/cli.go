@@ -92,6 +92,7 @@ func processDaemon(config *configuration.Configuration) (err error) {
 	if config.LinuxProcessesEnforcement {
 		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxProcess())
 		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxHost())
+		triremeOptions = append(triremeOptions, trireme.OptionEnforceLinuxProcess())
 	}
 
 	triremeOptions = append(triremeOptions, trireme.OptionMonitors(

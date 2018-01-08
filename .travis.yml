@@ -25,6 +25,11 @@ before_install:
   - go get -v github.com/Masterminds/glide
   - gometalinter.v1 --install
 
+install:
+  - mkdir -p $GOPATH/src/github.com/docker && cd $GOPATH/src/github.com/docker && git clone https://github.com/docker/docker -b 1.13.x docker && cd -
+  - glide cc
+  - glide up
+
 script:
   - make build
   - gometalinter.v1 --disable-all --enable=vet --enable=vetshadow --enable=golint --enable=structcheck --enable=aligncheck --enable=deadcode --enable=ineffassign --vendor --enable=goimports --enable=varcheck --enable=interfacer --enable=goconst --enable=gosimple --enable=staticcheck --enable=unused --enable=misspell --deadline=300s ./...
@@ -32,7 +37,7 @@ script:
 
 after_success:
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - 'if [ ${TRAVIS_BRANCH} = "master" ]; then
+  - 'if [ ${TRAVIS_BRANCH} = "master" ] && [ ${TRAVIS_PULL_REQUEST} = "false" ]; then
       make docker_push;
     fi'
   - make docker_push -e DOCKER_IMAGE_TAG="${TRAVIS_COMMIT}"

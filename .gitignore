@@ -1,3 +1,4 @@
+versions/versions.go
 cnitest/cnitest
 trireme-example
 glide.lock

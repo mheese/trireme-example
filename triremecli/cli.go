@@ -1,164 +1,129 @@
 package triremecli
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"go.uber.org/zap"
 
-	"github.com/aporeto-inc/trireme-example/constructors"
+	"github.com/aporeto-inc/trireme-example/configuration"
 	"github.com/aporeto-inc/trireme-example/extractors"
+	"github.com/aporeto-inc/trireme-example/policyexample"
+	"github.com/aporeto-inc/trireme-example/utils"
 
-	"github.com/aporeto-inc/trireme"
-	"github.com/aporeto-inc/trireme/cmd/remoteenforcer"
-	"github.com/aporeto-inc/trireme/cmd/systemdutil"
-	"github.com/aporeto-inc/trireme/enforcer"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/monitor/cliextractor"
-	"github.com/aporeto-inc/trireme/monitor/dockermonitor"
-	"github.com/aporeto-inc/trireme/processmon"
+	trireme "github.com/aporeto-inc/trireme-lib"
+	"github.com/aporeto-inc/trireme-lib/cmd/systemdutil"
+	"github.com/aporeto-inc/trireme-lib/enforcer/utils/secrets"
 )
 
 // KillContainerOnError defines if the Container is getting killed if the policy Application resulted in an error
 const KillContainerOnError = true
 
 // ProcessArgs handles all commands options for trireme
-func ProcessArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) (err error) {
+func ProcessArgs(config *configuration.Configuration) (err error) {
 
-	if arguments["enforce"].(bool) {
-		// Run enforcer and exit
-		return remoteenforcer.LaunchRemoteEnforcer(processor)
+	if config.Enforce {
+		return processEnforce(config)
 	}
 
-	if arguments["run"].(bool) || arguments["<cgroup>"] != nil {
+	if config.Run {
 		// Execute a command or process a cgroup cleanup and exit
-		return processCmdArgs(arguments)
-	}
-
-	if !arguments["daemon"].(bool) {
-		return fmt.Errorf("Invalid parameters")
+		return processRun(config)
 	}
 
 	// Trireme Daemon Commands
-	processDaemonArgs(arguments, processor)
+	return processDaemon(config)
+}
+
+func processEnforce(config *configuration.Configuration) (err error) {
+	// Run enforcer and exit
+
+	if err := trireme.LaunchRemoteEnforcer(nil); err != nil {
+		zap.L().Fatal("Unable to start enforcer", zap.Error(err))
+	}
 	return nil
 }
 
-func processCmdArgs(arguments map[string]interface{}) error {
-	return systemdutil.ExecuteCommandFromArguments(arguments)
+func processRun(config *configuration.Configuration) (err error) {
+	return systemdutil.ExecuteCommandFromArguments(config.Arguments)
 }
 
-// processDaemonArgs is responsible for creating a trireme daemon
-func processDaemonArgs(arguments map[string]interface{}, processor enforcer.PacketProcessor) {
+func processDaemon(config *configuration.Configuration) (err error) {
 
-	var t trireme.Trireme
-	var m monitor.Monitor
-	var rm monitor.Monitor
-	var err error
-	var customExtractor dockermonitor.DockerMetadataExtractor
+	triremeOptions := []trireme.Option{}
 
-	// Setup incoming args
-	processmon.GlobalCommandArgs = arguments
+	if config.LogLevel == "trace" {
+		triremeOptions = append(triremeOptions, trireme.OptionPacketLogs())
+	}
 
-	if arguments["--swarm"].(bool) {
-		zap.L().Info("Using Docker Swarm extractor")
-		customExtractor = extractors.SwarmExtractor
-	} else if arguments["--extractor"].(bool) {
-		extractorfile := arguments["<metadatafile>"].(string)
-		zap.L().Info("Using custom extractor")
-		customExtractor, err = cliextractor.NewExternalExtractor(extractorfile)
+	// Setting up Secret Auth type based on user config.
+	var triremesecret secrets.Secrets
+	if config.Auth == configuration.PSK {
+		zap.L().Info("Initializing Trireme with PSK Auth. Should NOT be used in production")
+
+		triremesecret = secrets.NewPSKSecrets([]byte(config.PSK))
+
+	} else if config.Auth == configuration.PKI {
+		zap.L().Info("Initializing Trireme with PKI Auth")
+
+		triremesecret, err = utils.LoadCompactPKI(config.KeyPath, config.CertPath, config.CaCertPath, config.CaKeyPath)
 		if err != nil {
-			zap.L().Fatal("External metadata extractor cannot be accessed", zap.Error(err))
+			zap.L().Fatal("error creating PKI Secret for Trireme", zap.Error(err))
 		}
+	} else {
+		zap.L().Fatal("No Authentication option given")
 	}
+	triremeOptions = append(triremeOptions, trireme.OptionSecret(triremesecret))
 
-	policyFile := arguments["--policy"].(string)
+	// Setting up extractor and monitor
+	monitorOptions := []trireme.MonitorOption{}
 
-	targetNetworks := []string{}
-	if len(arguments["--target-networks"].([]string)) > 0 {
-		zap.L().Info("Target Networks", zap.Strings("networks", arguments["--target-networks"].([]string)))
-		targetNetworks = arguments["--target-networks"].([]string)
-	}
+	if config.DockerEnforcement {
+		dockerOptions := []trireme.DockerMonitorOption{}
 
-	if !arguments["--hybrid"].(bool) {
-		remote := arguments["--remote"].(bool)
-		if arguments["--usePKI"].(bool) {
-			keyFile := arguments["--keyFile"].(string)
-			certFile := arguments["--certFile"].(string)
-			caCertFile := arguments["--caCertFile"].(string)
-			caCertKeyFile := arguments["--caKeyFile"].(string)
-			zap.L().Info("Setting up trireme with PKI",
-				zap.String("key", keyFile),
-				zap.String("cert", certFile),
-				zap.String("ca", caCertFile),
-				zap.String("ca", caCertKeyFile),
-			)
-			t, m = constructors.TriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
-		} else {
-			zap.L().Info("Setting up trireme with PSK")
-			t, m = constructors.TriremeWithPSK(targetNetworks, &customExtractor, remote, KillContainerOnError, policyFile)
+		if config.SwarmMode {
+			dockerOptions = append(dockerOptions, trireme.SubOptionMonitorDockerExtractor(extractors.SwarmExtractor))
 		}
-	} else { // Hybrid mode
-		if arguments["--usePKI"].(bool) {
-			keyFile := arguments["--keyFile"].(string)
-			certFile := arguments["--certFile"].(string)
-			caCertFile := arguments["--caCertFile"].(string)
-			caCertKeyFile := arguments["--caKeyFile"].(string)
-			zap.L().Info("Setting up trireme with Compact PKI",
-				zap.String("key", keyFile),
-				zap.String("cert", certFile),
-				zap.String("ca", caCertFile),
-				zap.String("ca", caCertKeyFile),
-			)
-			t, m, rm = constructors.HybridTriremeWithCompactPKI(keyFile, certFile, caCertFile, caCertKeyFile, targetNetworks, &customExtractor, true, KillContainerOnError, policyFile)
-		} else {
-			t, m, rm = constructors.HybridTriremeWithPSK(targetNetworks, &customExtractor, KillContainerOnError, policyFile)
-			if rm == nil {
-				zap.L().Fatal("Failed to create remote monitor for hybrid")
-			}
-			zap.L().Info("Setting up trireme with PSK")
-		}
+
+		monitorOptions = append(monitorOptions, trireme.OptionMonitorDocker(dockerOptions...))
 	}
 
-	if arguments["--cni"].(bool) {
-		zap.L().Info("Setting up CNI trireme with PSK")
-		t, m = constructors.TriremeCNIWithPSK(targetNetworks, false, KillContainerOnError, policyFile)
+	if config.LinuxProcessesEnforcement {
+		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxProcess())
+		monitorOptions = append(monitorOptions, trireme.OptionMonitorLinuxHost())
+		triremeOptions = append(triremeOptions, trireme.OptionEnforceLinuxProcess())
 	}
 
+	triremeOptions = append(triremeOptions, trireme.OptionMonitors(
+		trireme.NewMonitor(monitorOptions...)),
+	)
+
+	// Setting up PolicyResolver
+	policyEngine := policyexample.NewCustomPolicyResolver(config.ParsedTriremeNetworks, config.PolicyFile)
+	triremeOptions = append(triremeOptions, trireme.OptionPolicyResolver(policyEngine))
+	triremeOptions = append(triremeOptions, trireme.OptionDisableMutualAuth())
+
+	triremeNodeName := "ExampleNodeName"
+	t := trireme.New(triremeNodeName, triremeOptions...)
 	if t == nil {
-		zap.L().Fatal("Failed to create Trireme")
+		zap.L().Fatal("Unable to initialize trireme")
 	}
 
-	if m == nil {
-		zap.L().Fatal("Failed to create Monitor")
-	}
+	// Start all the go routines.
+	t.Start()
+	zap.L().Debug("Trireme started")
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
-	// Start services
-	if err := t.Start(); err != nil {
-		zap.L().Fatal("Failed to start Trireme")
-	}
-
-	if err := m.Start(); err != nil {
-		zap.L().Fatal("Failed to start monitor")
-	}
-
-	if rm != nil {
-		if err := rm.Start(); err != nil {
-			zap.L().Fatal("Failed to start remote monitor")
-		}
-	}
-
-	// Wait for Ctrl-C
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	zap.L().Info("Everything started. Waiting for Stop signal")
+	// Waiting for a Sig
 	<-c
 
-	fmt.Println("Bye!")
-	m.Stop() // nolint
-	t.Stop() // nolint
-	if rm != nil {
-		rm.Stop() // nolint
-	}
+	zap.L().Debug("Stop signal received")
+	t.Stop()
+	zap.L().Debug("Trireme stopped")
+	zap.L().Info("Everything stopped. Bye Trireme-Example!")
+
+	return nil
 }

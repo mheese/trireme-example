@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aporeto-inc/trireme"
-	"github.com/aporeto-inc/trireme/monitor"
-	"github.com/aporeto-inc/trireme/policy"
+	trireme "github.com/aporeto-inc/trireme-lib"
+	"github.com/aporeto-inc/trireme-lib/policy"
+	"github.com/aporeto-inc/trireme-lib/rpc/events"
 	"go.uber.org/zap"
 )
 
@@ -128,14 +128,14 @@ func (p *CustomPolicyResolver) ResolvePolicy(context string, runtimeInfo policy.
 
 	excluded := []string{}
 
-	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded)
+	containerPolicyInfo := policy.NewPUPolicy(context, policy.Police, *puPolicy.ApplicationACLs, *puPolicy.NetworkACLs, nil, tagSelectors, identity, annotations, ipl, p.triremeNets, excluded, nil)
 
 	return containerPolicyInfo, nil
 }
 
 // HandlePUEvent implements the corresponding interface. We have no
 // state in this example
-func (p *CustomPolicyResolver) HandlePUEvent(context string, eventType monitor.Event) {
+func (p *CustomPolicyResolver) HandlePUEvent(context string, eventType events.Event) {
 
 	zap.L().Info("Handling container event",
 		zap.String("containerID", context),
@@ -201,14 +201,22 @@ func (p *CustomPolicyResolver) createDefaultRules(runtimeInfo policy.RuntimeRead
 	selectorList = append(selectorList, tagSelector)
 
 	for i, selector := range selectorList {
-		for _, clause := range selector.Clause {
+		for j, clause := range selector.Clause {
 			zap.L().Info("Trireme policy for container",
 				zap.String("name", runtimeInfo.Name()),
-				zap.Int("c", i),
+				zap.Int("selector", i),
+				zap.Int("clause", j),
 				zap.String("selector", fmt.Sprintf("%#v", clause)),
+				zap.String("policy", fmt.Sprintf("%#v", selector.Policy)),
 			)
 		}
 	}
+
+	zap.L().Info("Trireme tags for container",
+		zap.String("name", runtimeInfo.Name()),
+		zap.String("selector", fmt.Sprintf("%#v", runtimeInfo.Tags())),
+	)
+
 	return selectorList
 
 }

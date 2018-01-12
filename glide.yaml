@@ -3,8 +3,8 @@ description: ""
 import:
 
   ## Aporeto
-- package: github.com/aporeto-inc/trireme
-  version: 2.x
+- package: github.com/aporeto-inc/trireme-lib
+  version: 6.x.x
 
   ## 3rd Party
 - package: github.com/docker/docker

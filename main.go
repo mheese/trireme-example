@@ -12,6 +12,8 @@ import (
 	"github.com/aporeto-inc/trireme-example/triremecli"
 	"github.com/aporeto-inc/trireme-example/versions"
 	trireme "github.com/aporeto-inc/trireme-lib"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -103,6 +105,76 @@ func setLogs(logFormat, logLevel string) error {
 }
 
 func main() {
+	cmdRun := &cobra.Command{
+		Use:   "run [OPTIONS] <command> [--] [<params>...]",
+		Short: "Run an application with a Trireme policy",
+		Long:  "TODO",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("In RUN command", args)
+			return
+		},
+	}
+
+	cmdRm := &cobra.Command{
+		Use:   "rm [--service-id=<id> | --service-name=<sname>]",
+		Short: "Remove Trireme policy from a running cgroup",
+		Long:  "TODO",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("In RM command", args)
+			return
+		},
+	}
+
+	cmdDaemon := &cobra.Command{
+		Use:   "daemon [ OPTIONS ]",
+		Short: "Starts the Trireme daemon",
+		Long:  "TODO",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("In DAEMON command", args)
+			return
+		},
+	}
+
+	cmdEnforce := &cobra.Command{
+		Use:   "enforce",
+		Short: "Starts the Trireme remote enforcer daemon",
+		Long:  "TODO",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("In ENFORCE command", args)
+			return
+		},
+	}
+
+	rootCmd := &cobra.Command{
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("In ROOT command", args)
+			cmd.DebugFlags()
+			viper.Debug()
+			return
+		},
+		Version: versions.VERSION + " (" + versions.REVISION + ")",
+	}
+	rootCmd.SetVersionTemplate("blah")
+	rootCmd.AddCommand(cmdRun, cmdRm, cmdDaemon, cmdEnforce)
+	//rootCmd.PersistentFlags().Bool("version", false, "Show version and exit")
+	rootCmd.PersistentFlags().String("log-level", "info", "Log level")
+	rootCmd.PersistentFlags().String("log-level-remote", "info", "Log level for remote enforcers")
+	rootCmd.PersistentFlags().String("log-id", "", "Log identifier")
+	rootCmd.PersistentFlags().Bool("log-to-console", true, "Log to console")
+	viper.BindPFlags(rootCmd.PersistentFlags())
+	//viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
+	//viper.BindPFlag("log-level-remote", rootCmd.PersistentFlags().Lookup("log-level-remote"))
+	//viper.BindPFlag("log-id", rootCmd.PersistentFlags().Lookup("log-id"))
+	//viper.BindPFlag("log-to-console", rootCmd.PersistentFlags().Lookup("log-to-console"))
+	err := rootCmd.Execute()
+	fmt.Println(err)
+	os.Exit(1)
+
 	config, err := configuration.LoadConfig()
 	if err != nil {
 		log.Fatalf("Error loading config: %s", err)

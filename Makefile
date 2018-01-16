@@ -1,7 +1,5 @@
 PROJECT_NAME := trireme-example
-VERSION_FILE := ./versions/versions.go
 VERSION := 0.11
-REVISION=$(shell git log -1 --pretty=format:"%H")
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 BUILD_NUMBER := latest

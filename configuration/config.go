@@ -74,42 +74,6 @@ type Configuration struct {
 	Run bool
 }
 
-type LoggingConfiguration struct {
-	LogFormat      string
-	LogLevel       string
-	LogLevelRemote string
-	LogID          string
-	LogToConsole   bool
-}
-
-type RunConfiguration struct {
-	ServiceName string
-	Label       []string
-	Ports       []string
-	Networkonly bool
-	Hostpolicy  bool
-}
-
-type RmConfiguration struct {
-	ServiceID   string
-	ServiceName string
-}
-
-type DaemonConfiguration struct {
-	TargetNetworks []string
-	PolicyFile     string
-	UsePKI         bool
-	Hybrid         bool
-	Remote         bool
-	Local          bool
-	Swarm          bool
-	Extractor      string
-	KeyFile        string
-	CertFile       string
-	CAKeyFile      string
-	CACertFile     string
-}
-
 // Usage is the whole help string for the executable
 const Usage = `Command for launching programs with Trireme policy.
 

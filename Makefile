@@ -2,6 +2,8 @@ PROJECT_NAME := trireme-example
 VERSION_FILE := ./versions/versions.go
 VERSION := 0.11
 REVISION=$(shell git log -1 --pretty=format:"%H")
+GIT_COMMIT=$(shell git rev-parse HEAD)
+GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 BUILD_NUMBER := latest
 DOCKER_REGISTRY?=aporeto
 DOCKER_IMAGE_NAME?=$(PROJECT_NAME)
@@ -17,8 +19,11 @@ codegen:
 	echo '// REVISION is the revision of Trireme-Example' >> $(VERSION_FILE)
 	echo 'const REVISION = "$(REVISION)"' >> $(VERSION_FILE)
 
-build: codegen
-	CGO_ENABLED=1 go build -a -installsuffix cgo
+build:
+	CGO_ENABLED=1 go build -a -installsuffix cgo \
+		-ldflags \
+			"-X github.com/aporeto-inc/trireme-example/versions.VERSION=$(VERSION) \
+			 -X github.com/aporeto-inc/trireme-example/versions.REVISION=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 install: build
 	  sudo cp trireme-example $(BIN_PATH)/trireme-example
@@ -38,4 +43,4 @@ docker_push: docker_build
 
 clean:
 	rm -rf vendor
-	rm -rf docker/trireme-example 
+	rm -rf docker/trireme-example

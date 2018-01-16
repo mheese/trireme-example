@@ -115,6 +115,12 @@ func main() {
 			return
 		},
 	}
+	cmdRun.Flags().String("service-name", "", "The name of the service to be launched")
+	cmdRun.Flags().StringSlice("label", nil, "The metadata/labels associated with a service")
+	cmdRun.Flags().StringSlice("ports", nil, "Ports that the executed service is listening to")
+	cmdRun.Flags().Bool("networkonly", false, "Control traffic from the network only and not from applications")
+	cmdRun.Flags().Bool("hostpolicy", false, "Default control of the base namespace")
+	viper.BindPFlags(cmdRun.Flags())
 
 	cmdRm := &cobra.Command{
 		Use:   "rm [--service-id=<id> | --service-name=<sname>]",
@@ -126,6 +132,9 @@ func main() {
 			return
 		},
 	}
+	cmdRm.Flags().String("service-id", "", "The name of the service to be removed from Trireme")
+	cmdRm.Flags().String("service-name", "", "The name of the service to be removed from Trireme")
+	viper.BindPFlags(cmdRm.Flags())
 
 	cmdDaemon := &cobra.Command{
 		Use:   "daemon [ OPTIONS ]",
@@ -137,6 +146,19 @@ func main() {
 			return
 		},
 	}
+	cmdDaemon.Flags().StringSlice("target-networks", nil, "The target networks that Trireme should apply authentication")
+	cmdDaemon.Flags().String("policy", "", "Policy file")
+	cmdDaemon.Flags().Bool("usePKI", false, "Use PKI for Trireme")
+	cmdDaemon.Flags().Bool("hybrid", false, "Hybrid mode of deployment (docker+processes)")
+	cmdDaemon.Flags().Bool("local", false, "Local mode of deployment")
+	cmdDaemon.Flags().Bool("remote", false, "Local mode of deployment")
+	cmdDaemon.Flags().Bool("swarm", false, "Deploy Docker Swarm metadata extractor")
+	cmdDaemon.Flags().String("extractor", "", "External metadata extractor")
+	cmdDaemon.Flags().String("certFile", "", "Certificate file")
+	cmdDaemon.Flags().String("keyFile", "", "Key file")
+	cmdDaemon.Flags().String("caCertFile", "", "CA certificate")
+	cmdDaemon.Flags().String("caKeyFile", "", "CA key")
+	viper.BindPFlags(cmdDaemon.Flags())
 
 	cmdEnforce := &cobra.Command{
 		Use:   "enforce",
@@ -157,9 +179,11 @@ func main() {
 			viper.Debug()
 			return
 		},
+		Short:   "trireme-example",
+		Long:    "This is an example implementation of the trireme library",
 		Version: versions.VERSION + " (" + versions.REVISION + ")",
 	}
-	rootCmd.SetVersionTemplate("blah")
+	rootCmd.SetVersionTemplate(`{{printf "%s " .Short}}{{printf "%s\n" .Version}}`)
 	rootCmd.AddCommand(cmdRun, cmdRm, cmdDaemon, cmdEnforce)
 	//rootCmd.PersistentFlags().Bool("version", false, "Show version and exit")
 	rootCmd.PersistentFlags().String("log-level", "info", "Log level")
@@ -167,13 +191,11 @@ func main() {
 	rootCmd.PersistentFlags().String("log-id", "", "Log identifier")
 	rootCmd.PersistentFlags().Bool("log-to-console", true, "Log to console")
 	viper.BindPFlags(rootCmd.PersistentFlags())
-	//viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
-	//viper.BindPFlag("log-level-remote", rootCmd.PersistentFlags().Lookup("log-level-remote"))
-	//viper.BindPFlag("log-id", rootCmd.PersistentFlags().Lookup("log-id"))
-	//viper.BindPFlag("log-to-console", rootCmd.PersistentFlags().Lookup("log-to-console"))
 	err := rootCmd.Execute()
-	fmt.Println(err)
-	os.Exit(1)
+	if err != nil {
+		log.Fatalf("Failed to run command: %s", err.Error())
+	}
+	os.Exit(0)
 
 	config, err := configuration.LoadConfig()
 	if err != nil {

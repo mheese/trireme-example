@@ -141,7 +141,10 @@ Logging Options:
 // prepares the CLI for execution. It returns the configuration and the cobra
 // instance which you should execute once ready to run the program. The arguments
 // are the functions that should get executed once the CLI is started. `setLogs`
-// is called to prepare zap.
+// is called to prepare zap. `banner` is called to print a CLI banner on daemon
+// startup. The returned error is not nil when there was an error loading the
+// configuration file which is not necessarily a problem and you might want to
+// ignore that.
 func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configuration) error, setLogs func(logFormat, logLevel string) error, banner func(version, revision string)) (*Configuration, *cobra.Command, error) {
 	var config Configuration
 	config.Arguments = make(map[string]interface{})
@@ -176,14 +179,14 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.trireme-example/")
 	viper.AddConfigPath("/etc/trireme-example/")
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {
-		zap.L().Debug("failed to read config file(s)", zapcore.Field{
-			Key:    "error",
-			Type:   zapcore.StringType,
-			String: err.Error(),
-		})
-	}
+	configFileErr := viper.ReadInConfig() // Find and read the config file
+	//if err != nil {
+	//	zap.L().Debug("failed to read config file(s)", zapcore.Field{
+	//		Key:    "error",
+	//		Type:   zapcore.StringType,
+	//		String: err.Error(),
+	//	})
+	//}
 
 	// 3. setup environment variables
 	viper.SetEnvPrefix(TriremeEnvPrefix)
@@ -358,7 +361,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 		Args:    cobra.ExactArgs(1),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// for all commands we want to apply our viper configuration first
-			err = viper.Unmarshal(&config)
+			err := viper.Unmarshal(&config)
 			if err != nil {
 				return fmt.Errorf("failed to initialize config: %s", err.Error())
 			}
@@ -400,7 +403,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 
 	setupTriremeSubProcessArgs(&config)
 
-	return &config, rootCmd, nil
+	return &config, rootCmd, configFileErr
 }
 
 // LoadConfig returns a Configuration struct ready to use.

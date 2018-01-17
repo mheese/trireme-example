@@ -24,19 +24,20 @@ const KillContainerOnError = true
 func ProcessArgs(config *configuration.Configuration) (err error) {
 
 	if config.Enforce {
-		return processEnforce(config)
+		return ProcessEnforce(config)
 	}
 
 	if config.Run {
 		// Execute a command or process a cgroup cleanup and exit
-		return processRun(config)
+		return ProcessRun(config)
 	}
 
 	// Trireme Daemon Commands
-	return processDaemon(config)
+	return ProcessDaemon(config)
 }
 
-func processEnforce(config *configuration.Configuration) (err error) {
+// ProcessEnforce is called if the application is run as remote enforcer
+func ProcessEnforce(config *configuration.Configuration) (err error) {
 	// Run enforcer and exit
 
 	if err := trireme.LaunchRemoteEnforcer(nil); err != nil {
@@ -45,11 +46,14 @@ func processEnforce(config *configuration.Configuration) (err error) {
 	return nil
 }
 
-func processRun(config *configuration.Configuration) (err error) {
+// ProcessRun is called when the application is either adding or removing
+// Trireme to a cgroup, or if an application is wrapped with trireme ("run")
+func ProcessRun(config *configuration.Configuration) (err error) {
 	return systemdutil.ExecuteCommandFromArguments(config.Arguments)
 }
 
-func processDaemon(config *configuration.Configuration) (err error) {
+// ProcessDaemon is called when trireme-example is called to start the daemon
+func ProcessDaemon(config *configuration.Configuration) (err error) {
 
 	triremeOptions := []trireme.Option{}
 

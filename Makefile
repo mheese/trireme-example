@@ -9,7 +9,7 @@ DOCKER_IMAGE_TAG?=$(BUILD_NUMBER)
 BIN_PATH := /usr/local/bin
 
 build:
-	CGO_ENABLED=1 go build -a -installsuffix cgo \
+	CGO_ENABLED=1 go build -v -a -installsuffix cgo \
 		-ldflags \
 			"-X github.com/aporeto-inc/trireme-example/versions.VERSION=$(VERSION) \
 			 -X github.com/aporeto-inc/trireme-example/versions.REVISION=$(GIT_COMMIT)$(GIT_DIRTY)"

@@ -109,6 +109,8 @@ func main() {
 	var err error
 	var config configuration.Configuration
 	config.Arguments = make(map[string]interface{})
+	config.Arguments["rm"] = false
+	config.Arguments["run"] = false
 
 	// initialize viper first
 	// 1. initialize our default values
@@ -290,6 +292,13 @@ func main() {
 			if fLogLevelRemote != nil && len(*fLogLevelRemote) > 0 {
 				config.LogLevel = *fLogLevelRemote
 			}
+
+			// redo the log setup
+			// TODO: is there a better method than doing it twice?
+			err = setLogs(config.LogFormat, config.LogLevel)
+			if err != nil {
+				log.Fatalf("Error setting up logs: %s", err)
+			}
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			//TODO: implement
@@ -308,6 +317,12 @@ func main() {
 			if err != nil {
 				log.Fatalf("failed to initialize config: %s", err.Error())
 			}
+
+			// setup logs
+			err = setLogs(config.LogFormat, config.LogLevel)
+			if err != nil {
+				log.Fatalf("Error setting up logs: %s", err)
+			}
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			// the root command is also an own command: it takes the <cgroup> argument,
@@ -322,6 +337,7 @@ func main() {
 	rootCmd.SetVersionTemplate(`{{printf "%s " .Short}}{{printf "%s\n" .Version}}`)
 	rootCmd.AddCommand(cmdRun, cmdRm, cmdDaemon, cmdEnforce)
 	rootCmd.PersistentFlags().String("log-level", "info", "Log level")
+	rootCmd.PersistentFlags().String("log-format", "info", "Log Format")
 	// TODO: not used at all?
 	fLogLevelRemote = rootCmd.PersistentFlags().String("log-level-remote", "info", "Log level for remote enforcers")
 	// TODO: not used at all?
@@ -352,10 +368,10 @@ func main() {
 	//	config.LogLevel = *fLogLevelRemote
 	//}
 
-	err = setLogs(config.LogFormat, config.LogLevel)
-	if err != nil {
-		log.Fatalf("Error setting up logs: %s", err)
-	}
+	//err = setLogs(config.LogFormat, config.LogLevel)
+	//if err != nil {
+	//	log.Fatalf("Error setting up logs: %s", err)
+	//}
 
 	//if !config.Enforce && !config.Run {
 	//	banner("14", "20")

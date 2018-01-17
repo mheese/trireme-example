@@ -110,6 +110,7 @@ func main() {
 	var config configuration.Configuration
 	config.Arguments = make(map[string]interface{})
 
+	// initialize viper first
 	// 1. initialize our default values
 	viper.SetDefault("Auth", configuration.PSK)
 	viper.SetDefault("PSK", "BADPASS")
@@ -137,7 +138,11 @@ func main() {
 	viper.AddConfigPath("/etc/trireme-example/")
 	err = viper.ReadInConfig() // Find and read the config file
 	if err != nil {
-		// TODO: decide if we want to print an error
+		zap.L().Debug("failed to read config file(s)", zapcore.Field{
+			Key:    "error",
+			Type:   zapcore.StringType,
+			String: err.Error(),
+		})
 	}
 
 	// 3. setup environment variables
@@ -147,6 +152,8 @@ func main() {
 	//       the variables from docopts
 	viper.AutomaticEnv()
 
+	// now define all commands
+	// 1. run command
 	var fServiceName *string
 	var fLabel, fPorts *[]string
 	var fNetworkonly, fHostpolicy *bool
@@ -155,8 +162,9 @@ func main() {
 		Short: "Run an application with a Trireme policy",
 		Long:  "TODO",
 		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("In RUN command", args)
+		PreRun: func(cmd *cobra.Command, args []string) {
+			// manage setting of the rest of the configuration manually as we cannot
+			// bind this with viper unfortunately
 			config.Run = true
 			config.Arguments["run"] = true
 			if fServiceName != nil {
@@ -179,15 +187,15 @@ func main() {
 			config.Arguments["<command>"] = args[0]
 
 			if len(args) > 1 {
-				if args[1] != "--" {
-					return fmt.Errorf("invalid command")
-				}
-
-				if len(args) > 2 {
-					config.Arguments["<params>"] = args[2:]
-				}
+				// NOTE: this is taken care of by cobra: it removes the first `--`
+				//if args[1] != "--" {
+				//	return fmt.Errorf("invalid <command>")
+				//}
+				config.Arguments["<params>"] = args[1:]
 			}
-			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			// TODO: implement
 		},
 	}
 	fServiceName = cmdRun.Flags().String("service-name", "", "The name of the service to be launched")
@@ -195,17 +203,15 @@ func main() {
 	fPorts = cmdRun.Flags().StringSlice("ports", nil, "Ports that the executed service is listening to")
 	fNetworkonly = cmdRun.Flags().Bool("networkonly", false, "Control traffic from the network only and not from applications")
 	fHostpolicy = cmdRun.Flags().Bool("hostpolicy", false, "Default control of the base namespace")
-	// they all need to get bound to the arguments array in the config
-	//viper.BindPFlags(cmdRun.Flags())
 
+	// 2. rm command
 	var fRmServiceID, fRmServiceName *string
 	cmdRm := &cobra.Command{
 		Use:   "rm [--service-id=<id> | --service-name=<sname>]",
 		Short: "Remove Trireme policy from a running cgroup",
 		Long:  "TODO",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("In RM command", args)
+		PreRun: func(cmd *cobra.Command, args []string) {
 			config.Run = true
 			config.Arguments["rm"] = true
 			if fRmServiceID != nil {
@@ -215,29 +221,33 @@ func main() {
 				config.Arguments["--service-name"] = *fRmServiceName
 			}
 		},
+		Run: func(cmd *cobra.Command, args []string) {
+			//TODO: implement
+		},
 	}
 	fRmServiceID = cmdRm.Flags().String("service-id", "", "The name of the service to be removed from Trireme")
 	fRmServiceName = cmdRm.Flags().String("service-name", "", "The name of the service to be removed from Trireme")
-	// they all need to get bound to the arguments array in the config
-	//viper.BindPFlags(cmdRm.Flags())
 
+	// 3. daemon command
 	var fUsePKI, fLocal *bool
 	cmdDaemon := &cobra.Command{
 		Use:   "daemon [ OPTIONS ]",
 		Short: "Starts the Trireme daemon",
 		Long:  "TODO",
 		Args:  cobra.NoArgs,
-		//PreRun: func(cmd *cobra.Command, args []string) {
-		//
-		//},
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("In DAEMON command", args)
+		PreRun: func(cmd *cobra.Command, args []string) {
 			if fUsePKI != nil && *fUsePKI {
 				config.Auth = configuration.PKI
 			}
 			if fLocal != nil && *fLocal {
 				config.RemoteEnforcer = false
 			}
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			// display the banner for the daemon startup
+			banner("14", "20")
+			zap.L().Info("Current configuration", config.Fields()...)
+			zap.L().Info("Current library versions", versions.Fields()...)
 		},
 	}
 	cmdDaemon.Flags().StringSlice("target-networks", nil, "The target networks that Trireme should apply authentication")
@@ -262,76 +272,96 @@ func main() {
 	viper.BindPFlag("LinuxProcessesEnforcement", cmdDaemon.Flags().Lookup("hybrid"))
 	viper.BindPFlag("SwarmMode", cmdDaemon.Flags().Lookup("swarm"))
 	viper.BindPFlag("CustomExtractor", cmdDaemon.Flags().Lookup("extractor"))
-	//viper.BindPFlags(cmdDaemon.Flags())
 
+	// 4. enforce command
+	var fLogLevelRemote *string
 	cmdEnforce := &cobra.Command{
 		Use:   "enforce",
 		Short: "Starts the Trireme remote enforcer daemon",
 		Long:  "TODO",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("In ENFORCE command", args)
+		PreRun: func(cmd *cobra.Command, args []string) {
 			config.Enforce = true
-			return
+
+			// the remote enforcer needs to determine its logging parameters first
+			_, _, config.LogLevel, config.LogFormat = trireme.GetLogParameters()
+
+			// we then apply a different log level if this was requested
+			if fLogLevelRemote != nil && len(*fLogLevelRemote) > 0 {
+				config.LogLevel = *fLogLevelRemote
+			}
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			//TODO: implement
 		},
 	}
 
+	// 5. the root command: the main application entrypoint
 	rootCmd := &cobra.Command{
-		Args: cobra.ExactArgs(1),
+		Short:   "trireme-example",
+		Long:    "This is an example implementation of the trireme library",
+		Version: versions.VERSION + " (" + versions.REVISION + ")",
+		Args:    cobra.ExactArgs(1),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			fmt.Println("In ROOT PersistentPreRun command", args)
+			// for all commands we want to apply our viper configuration first
 			err = viper.Unmarshal(&config)
 			if err != nil {
 				log.Fatalf("failed to initialize config: %s", err.Error())
 			}
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("In ROOT command", args)
+		PreRun: func(cmd *cobra.Command, args []string) {
+			// the root command is also an own command: it takes the <cgroup> argument,
+			// so it needs some more special commandline treatment here
 			config.Run = true
 			config.Arguments["<cgroup>"] = args[0]
 		},
-		Short:   "trireme-example",
-		Long:    "This is an example implementation of the trireme library",
-		Version: versions.VERSION + " (" + versions.REVISION + ")",
+		Run: func(cmd *cobra.Command, args []string) {
+			// TODO: implement
+		},
 	}
 	rootCmd.SetVersionTemplate(`{{printf "%s " .Short}}{{printf "%s\n" .Version}}`)
 	rootCmd.AddCommand(cmdRun, cmdRm, cmdDaemon, cmdEnforce)
 	rootCmd.PersistentFlags().String("log-level", "info", "Log level")
 	// TODO: not used at all?
-	rootCmd.PersistentFlags().String("log-level-remote", "info", "Log level for remote enforcers")
+	fLogLevelRemote = rootCmd.PersistentFlags().String("log-level-remote", "info", "Log level for remote enforcers")
 	// TODO: not used at all?
 	rootCmd.PersistentFlags().String("log-id", "", "Log identifier")
 	// TODO: not used at all?
 	rootCmd.PersistentFlags().Bool("log-to-console", true, "Log to console")
 	viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level"))
 	// TODO: LogFormat not used at all?
-	//viper.BindPFlag("LogFormat", rootCmd.PersistentFlags().Lookup("log-level"))
-	//viper.BindPFlags(rootCmd.PersistentFlags())
+	viper.BindPFlag("LogFormat", rootCmd.PersistentFlags().Lookup("log-format"))
+
+	// now run the defined cobra application
 	err = rootCmd.Execute()
 	if err != nil {
 		log.Fatalf("Failed to run command: %s", err.Error())
 	}
-	os.Exit(0)
+	//fmt.Printf("%#v\n", config)
+	//os.Exit(0)
 
 	//config, err := configuration.LoadConfig()
 	//if err != nil {
 	//	log.Fatalf("Error loading config: %s", err)
 	//}
 
-	if config.Enforce {
-		_, _, config.LogLevel, config.LogFormat = trireme.GetLogParameters()
-	}
+	//if config.Enforce {
+	//	_, _, config.LogLevel, config.LogFormat = trireme.GetLogParameters()
+	//}
+	//if fLogLevelRemote != nil && len(*fLogLevelRemote) > 0 {
+	//	config.LogLevel = *fLogLevelRemote
+	//}
 
 	err = setLogs(config.LogFormat, config.LogLevel)
 	if err != nil {
 		log.Fatalf("Error setting up logs: %s", err)
 	}
 
-	if !config.Enforce && !config.Run {
-		banner("14", "20")
-		zap.L().Info("Current configuration", config.Fields()...)
-		zap.L().Info("Current libraties versions", versions.Fields()...)
-	}
+	//if !config.Enforce && !config.Run {
+	//	banner("14", "20")
+	//	zap.L().Info("Current configuration", config.Fields()...)
+	//	zap.L().Info("Current libraties versions", versions.Fields()...)
+	//}
 
 	triremecli.ProcessArgs(&config)
 }

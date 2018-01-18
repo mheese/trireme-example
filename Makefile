@@ -1,18 +1,24 @@
 PROJECT_NAME := trireme-example
+VERSION_FILE := ./versions/versions.go
 VERSION := 0.11
-GIT_COMMIT=$(shell git rev-parse HEAD)
-GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+REVISION=$(shell git log -1 --pretty=format:"%H")
 BUILD_NUMBER := latest
 DOCKER_REGISTRY?=aporeto
 DOCKER_IMAGE_NAME?=$(PROJECT_NAME)
 DOCKER_IMAGE_TAG?=$(BUILD_NUMBER)
 BIN_PATH := /usr/local/bin
 
-build:
-	CGO_ENABLED=1 go build -v -a -installsuffix cgo \
-		-ldflags \
-			"-X github.com/aporeto-inc/trireme-example/versions.VERSION=$(VERSION) \
-			 -X github.com/aporeto-inc/trireme-example/versions.REVISION=$(GIT_COMMIT)$(GIT_DIRTY)"
+codegen:
+	echo 'package versions' > $(VERSION_FILE)
+	echo '' >> $(VERSION_FILE)
+	echo '// VERSION is the version of Trireme-Example' >> $(VERSION_FILE)
+	echo 'const VERSION = "$(VERSION)"' >> $(VERSION_FILE)
+	echo '' >> $(VERSION_FILE)
+	echo '// REVISION is the revision of Trireme-Example' >> $(VERSION_FILE)
+	echo 'const REVISION = "$(REVISION)"' >> $(VERSION_FILE)
+
+build: codegen
+	CGO_ENABLED=1 go build -a -installsuffix cgo
 
 install: build
 	  sudo cp trireme-example $(BIN_PATH)/trireme-example

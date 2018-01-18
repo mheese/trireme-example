@@ -8,6 +8,7 @@ import (
 	"github.com/aporeto-inc/trireme-example/versions"
 	trireme "github.com/aporeto-inc/trireme-lib"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -352,12 +353,17 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	}
 
 	// 5. the root command: the main application entrypoint
+	pfVersion := pflag.BoolP("version", "V", false, "Prints version information and exits")
 	rootCmd := &cobra.Command{
-		Short:   "trireme-example",
-		Long:    "This is an example implementation of the trireme library",
-		Version: versions.VERSION + " (" + versions.REVISION + ")",
-		Args:    cobra.ExactArgs(1),
+		Short: "trireme-example",
+		Long:  "This is an example implementation of the trireme library",
+		Args:  cobra.MaximumNArgs(1),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// check version information first and exit if it is requested
+			if pfVersion != nil && *pfVersion {
+				fmt.Printf("trireme-example %s (%s)\n", versions.VERSION, versions.REVISION)
+				os.Exit(0)
+			}
 			// for all commands we want to apply our viper configuration first
 			err := viper.Unmarshal(&config)
 			if err != nil {
@@ -371,7 +377,10 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			}
 			return nil
 		},
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("command takes exactly one argument: <cgroup>")
+			}
 			// the root command is also an own command: it takes the <cgroup> argument,
 			// so it needs some more special commandline treatment here
 			config.Run = true
@@ -379,14 +388,15 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 
 			// print configuration if in debug
 			zap.L().Debug("prepared config", config.Fields()...)
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// execute the actual command
 			return cgroupFunc(&config)
 		},
 	}
-	rootCmd.SetVersionTemplate(`{{printf "%s " .Short}}{{printf "%s\n" .Version}}`)
 	rootCmd.AddCommand(cmdRun, cmdRm, cmdDaemon, cmdEnforce)
+	rootCmd.PersistentFlags().AddFlag(pflag.Lookup("version"))
 	rootCmd.PersistentFlags().String("log-level", "info", "Log level")
 	rootCmd.PersistentFlags().String("log-format", "info", "Log Format")
 	// TODO: not used at all?
@@ -404,151 +414,6 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	setupTriremeSubProcessArgs(&config)
 
 	return rootCmd
-}
-
-// LoadConfig returns a Configuration struct ready to use.
-// TODO: It uses DocOpt as the end config manager. Eventually move everything in Viper.
-func LoadConfig() (*Configuration, error) {
-	var err error
-
-	// define command line flags (we bind them later)
-	//pflag.Usage = func() {
-	//	fmt.Println(ProductName + " " + versions.VERSION + " (" + versions.REVISION + ")")
-	//	fmt.Println()
-	//	fmt.Println(Usage)
-	//	os.Exit(2)
-	//}
-	//pflag.Bool("version", false, "Show version and exit")
-	//pflag.String("service-name", "", "The name of the service to be launched")
-	//pflag.StringSlice("label", nil, "The metadata/labels associated with a service")
-	//pflag.Bool("usePKI", false, "Use PKI for Trireme")
-	//pflag.String("certFile", "", "Certificate file")
-	//pflag.String("keyFile", "", "Key file")
-	//pflag.String("caCertFile", "", "CA certificate")
-	//pflag.String("caKeyFile", "", "CA key")
-	//pflag.Bool("hybrid", false, "Hybrid mode of deployment (docker+processes)")
-	//pflag.Bool("local", false, "Local mode of deployment")
-	//pflag.Bool("swarm", false, "Deploy Docker Swarm metadata extractor")
-	//pflag.String("extractor", "", "External metadata extractor")
-	//pflag.String("policy", "", "Policy file")
-	//pflag.StringSlice("target-networks", nil, "The target networks that Trireme should apply authentication")
-	//pflag.StringSlice("ports", nil, "Ports that the executed service is listening to")
-	//pflag.Bool("networkonly", false, "Control traffic from the network only and not from applications")
-	//pflag.Bool("hostpolicy", false, "Default control of the base namespace")
-	//pflag.String("log-level", "info", "Log level")
-	//pflag.String("log-level-remote", "info", "Log level for remote enforcers")
-	//pflag.String("log-id", "", "Log identifier")
-	//pflag.Bool("log-to-console", true, "Log to console")
-
-	// 1. initialize our default values
-	viper.SetDefault("Auth", PSK)
-	viper.SetDefault("PSK", "BADPASS")
-	viper.SetDefault("PolicyFile", "")
-	viper.SetDefault("CustomExtractor", "")
-	viper.SetDefault("KeyPath", "")
-	viper.SetDefault("CertPath", "")
-	viper.SetDefault("CaCertPath", "")
-	viper.SetDefault("CaKeyPath", "")
-	viper.SetDefault("TriremeNetworks", "")
-	viper.SetDefault("ParsedTriremeNetworks", []string{})
-	viper.SetDefault("LogFormat", "json")
-	viper.SetDefault("LogLevel", "info")
-	viper.SetDefault("RemoteEnforcer", true)
-	viper.SetDefault("DockerEnforcement", true)
-	viper.SetDefault("LinuxProcessesEnforcement", false)
-	viper.SetDefault("SwarmMode", false)
-	viper.SetDefault("Enforce", false)
-	viper.SetDefault("Run", false)
-
-	// 2. read config files
-	viper.SetConfigName("config")
-	viper.AddConfigPath("/etc/trireme-example/")
-	viper.AddConfigPath("$HOME/.trireme-example/")
-	viper.AddConfigPath(".")
-	err = viper.ReadInConfig() // Find and read the config file
-	if err != nil {
-		// TODO: decide if we want to print an error
-	}
-
-	// 3. setup environment variables
-	viper.SetEnvPrefix(TriremeEnvPrefix)
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-
-	//// 4. parse commandline flags
-	//pflag.Parse()
-	//viper.BindPFlags(pflag.CommandLine)
-
-	// now read the configuration
-	var config Configuration
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize config: %s", err.Error())
-	}
-
-	// By default use a remote enforcer for Docker.
-	//config.RemoteEnforcer = true
-
-	//var oldArgs map[string]interface{}
-	//oldArgs, err := getArguments()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//config.Arguments = oldArgs
-
-	//if oldArgs["run"].(bool) || oldArgs["rm"].(bool) || oldArgs["<cgroup>"] != nil {
-	//	// Execute a command or process a cgroup cleanup and exit
-	//	config.Run = true
-	//}
-
-	//if oldArgs["enforce"].(bool) {
-	//	// Execute a command or process a cgroup cleanup and exit
-	//	config.Enforce = true
-	//}
-
-	//if len(oldArgs["--target-networks"].([]string)) > 0 {
-	//	config.ParsedTriremeNetworks = oldArgs["--target-networks"].([]string)
-	//}
-
-	//config.PolicyFile = oldArgs["--policy"].(string)
-
-	//if oldArgs["--usePKI"].(bool) {
-	//	config.Auth = PKI
-	//	config.CertPath = oldArgs["--certFile"].(string)
-	//	config.KeyPath = oldArgs["--keyFile"].(string)
-	//	config.CaCertPath = oldArgs["--caCertFile"].(string)
-	//	config.CaKeyPath = oldArgs["--caKeyFile"].(string)
-
-	//} else {
-	//	config.Auth = PSK
-	//	config.PSK = "BADPASS"
-	//}
-
-	//config.DockerEnforcement = true
-	//if oldArgs["--hybrid"].(bool) {
-	//	config.LinuxProcessesEnforcement = true
-	//}
-
-	//if oldArgs["--local"].(bool) {
-	//	config.RemoteEnforcer = false
-	//}
-
-	//if oldArgs["--swarm"].(bool) {
-	//	config.SwarmMode = true
-	//}
-
-	//if oldArgs["--extractor"].(bool) {
-	//	config.CustomExtractor = oldArgs["metadatafile"].(string)
-	//}
-
-	//config.LogLevel = oldArgs["--log-level"].(string)
-
-	// unset current Trireme Env variables as to keep a clean state for the remote enforcer process.
-	unsetEnvVar(TriremeEnvPrefix)
-
-	setupTriremeSubProcessArgs(&config)
-
-	return &config, nil
 }
 
 // Fields returns a ready to dump zap.Fields containing all the configuration used.

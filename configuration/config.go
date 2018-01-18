@@ -78,65 +78,40 @@ type Configuration struct {
 }
 
 // Usage is the whole help string for the executable
-const Usage = `Command for launching programs with Trireme policy.
+const Usage = `trireme-example -h | --help
+  trireme-example --version
 
-  Usage:
-    trireme-example -h | --help
-    trireme-example --version
-    trireme-example run
-      [--service-name=<sname>]
-      [[--label=<keyvalue>]...]
-      [--ports=<ports>]
-      [--networkonly]
-      [--hostpolicy]
-      <command> [--] [<params>...]
-    trireme-example rm
-      [--service-id=<id>]
-      [--service-name=<sname>]
-    trireme-example daemon
-      [--target-networks=<networks>...]
-      [--policy=<policyFile>]
-      [--usePKI]
-      [--hybrid|--remote|--local]
-      [--swarm|--extractor <metadatafile>]
-      [--keyFile=<keyFile>]
-      [--certFile=<certFile>]
-      [--caCertFile=<caCertFile>]
-      [--caKeyFile=<caKeyFile>]
-	  [--log-level=<log-level>]
-      [--log-level-remote=<log-level>]
-      [--log-to-console]
-    trireme-example enforce
-	  [--log-level=<log-level>]
-    trireme-example <cgroup>
+  trireme-example run
+    [--service-name=<sname>]
+    [[--label=<keyvalue>]...]
+    [--ports=<ports>]
+    [--networkonly]
+    [--hostpolicy]
+    <command> [--] [<params>...]
 
-  Options:
-    -h --help                              Show this help message and exit.
-    --version                              show version and exit.
-    --service-name=<sname>                 The name of the service to be launched.
-    --label=<keyvalue>                     The metadata/labels associated with a service.
-    --usePKI                               Use PKI for Trireme [default: false].
-    --certFile=<certFile>                  Certificate file [default: certs/cert.pem].
-    --keyFile=<keyFile>                    Key file [default: certs/cert-key.pem].
-    --caCertFile=<caCertFile>              CA certificate [default: certs/ca.pem].
-    --caKeyFile=<caKeyFile>                CA key [default: certs/ca-key.pem].
-    --hybrid                               Hybrid mode of deployment (docker+processes) [default: false].
-    --local                                Local mode of deployment () [default: false].
-    --swarm                                Deploy Doccker Swarm metadata extractor [default: false].
-    --extractor                            External metadata extractor [default: ].
-    --policy=<policyFile>                  Policy file [default: policy.json].
-    --target-networks=<networks>...        The target networks that Trireme should apply authentication [default: ].
-    --ports=<ports>                        Ports that the executed service is listening to [default ].
-    --networkonly                          Control traffic from the network only and not from applications [default false].
-    --hostpolicy                           Default control of the base namespace [default false].
-    <cgroup>                               cgroup of process that are terminated.
+  trireme-example rm
+    [--service-id=<id>]
+    [--service-name=<sname>]
 
-Logging Options:
-    --log-level=<log-level>                Log level [default: info].
-    --log-level-remote=<log-level>         Log level for remote enforcers [default: info].
-    --log-id=<log-id>                      Log identifier.
-    --log-to-console                       Log to console [default: true].
-  `
+  trireme-example daemon
+    [--target-networks=<networks>...]
+    [--policy=<policyFile>]
+    [--usePKI]
+    [--hybrid|--remote|--local]
+    [--swarm|--extractor <metadatafile>]
+    [--keyFile=<keyFile>]
+    [--certFile=<certFile>]
+    [--caCertFile=<caCertFile>]
+    [--caKeyFile=<caKeyFile>]
+    [--log-level=<log-level>]
+    [--log-level-remote=<log-level>]
+    [--log-to-console]
+
+  trireme-example enforce
+    [--log-level=<log-level>]
+
+  trireme-example <cgroup>
+`
 
 // InitCLI processes all commands and option flags, loads the configuration and
 // prepares the CLI for execution. It returns the cobra instance which you should
@@ -194,7 +169,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	cmdRun := &cobra.Command{
 		Use:   "run [OPTIONS] <command> [--] [<params>...]",
 		Short: "Run an application with a Trireme policy",
-		Long:  "TODO",
+		Long:  "Run an application with a Trireme policy",
 		Args:  cobra.MinimumNArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) {
 			// manage setting of the rest of the configuration manually as we cannot
@@ -243,8 +218,8 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	var fRmServiceID, fRmServiceName *string
 	cmdRm := &cobra.Command{
 		Use:   "rm [--service-id=<id> | --service-name=<sname>]",
-		Short: "Remove Trireme policy from a running cgroup",
-		Long:  "TODO",
+		Short: "Remove Trireme policy from a running service",
+		Long:  "Remove Trireme policy from a running service",
 		Args:  cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			config.Run = true
@@ -272,7 +247,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	cmdDaemon := &cobra.Command{
 		Use:   "daemon [ OPTIONS ]",
 		Short: "Starts the Trireme daemon",
-		Long:  "TODO",
+		Long:  "Starts the Trireme daemon",
 		Args:  cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if fUsePKI != nil && *fUsePKI {
@@ -323,7 +298,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	cmdEnforce := &cobra.Command{
 		Use:   "enforce",
 		Short: "Starts the Trireme remote enforcer daemon",
-		Long:  "TODO",
+		Long:  "Starts the Trireme remote enforcer daemon - you don't need to call this by yourself",
 		Args:  cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			config.Enforce = true
@@ -355,9 +330,9 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	// 5. the root command: the main application entrypoint
 	pfVersion := pflag.BoolP("version", "V", false, "Prints version information and exits")
 	rootCmd := &cobra.Command{
-		Short: "trireme-example",
-		Long:  "This is an example implementation of the trireme library",
-		Args:  cobra.MaximumNArgs(1),
+		Use:  Usage,
+		Long: "Command for launching programs with Trireme policy.",
+		Args: cobra.MaximumNArgs(1),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// check version information first and exit if it is requested
 			if pfVersion != nil && *pfVersion {

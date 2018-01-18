@@ -4,4 +4,4 @@ package versions
 const VERSION = "0.11"
 
 // REVISION is the revision of Trireme-Example
-const REVISION = "b14d257c77ac192fc6e0e782a64ebed5b4e2d6a2"
+const REVISION = "154f98fb1d6683ac70e80d30d757d37269c065d4"

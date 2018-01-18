@@ -103,32 +103,20 @@ func setLogs(logFormat, logLevel string) error {
 
 func main() {
 	var err error
-	//var config *configuration.Configuration
 	var app *cobra.Command
 
 	// initialize the CLI
-	_, app, err = configuration.InitCLI(
+	app = configuration.InitCLI(
 		triremecli.ProcessRun,
 		triremecli.ProcessRun,
 		triremecli.ProcessRun,
 		triremecli.ProcessEnforce,
 		triremecli.ProcessDaemon,
 		setLogs,
-		banner,
+		func() {
+			banner("14", "20")
+		},
 	)
-
-	// if err is set, then we had issues reading from the config file
-	if err != nil {
-		// TODO: zap is not setup at this point yet
-		zap.L().Debug("failed to read config file(s)", zapcore.Field{
-			Key:    "error",
-			Type:   zapcore.StringType,
-			String: err.Error(),
-		})
-	}
-
-	// print configuration if in debug
-	//zap.L().Debug("prepared config", config.Fields()...)
 
 	// now run the app
 	err = app.Execute()

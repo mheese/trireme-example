@@ -138,14 +138,11 @@ Logging Options:
   `
 
 // InitCLI processes all commands and option flags, loads the configuration and
-// prepares the CLI for execution. It returns the configuration and the cobra
-// instance which you should execute once ready to run the program. The arguments
-// are the functions that should get executed once the CLI is started. `setLogs`
-// is called to prepare zap. `banner` is called to print a CLI banner on daemon
-// startup. The returned error is not nil when there was an error loading the
-// configuration file which is not necessarily a problem and you might want to
-// ignore that.
-func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configuration) error, setLogs func(logFormat, logLevel string) error, banner func(version, revision string)) (*Configuration, *cobra.Command, error) {
+// prepares the CLI for execution. It returns the cobra instance which you should
+// execute once ready to run the program. The arguments are the functions that
+// should get executed once the CLI is started. `setLogs` is called to prepare zap.
+// `banner` is called to print a CLI banner on daemon startup.
+func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configuration) error, setLogs func(logFormat, logLevel string) error, banner func()) *cobra.Command {
 	var config Configuration
 	config.Arguments = make(map[string]interface{})
 	// if we don't initialize these as booleans, the systemdutil.ExecuteCommandFromArguments()
@@ -175,18 +172,11 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	viper.SetDefault("Run", false)
 
 	// 2. read config file: first one will be taken into account
-	viper.SetConfigName("config")
+	viper.SetConfigName("trireme-example")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.trireme-example/")
 	viper.AddConfigPath("/etc/trireme-example/")
-	configFileErr := viper.ReadInConfig() // Find and read the config file
-	//if err != nil {
-	//	zap.L().Debug("failed to read config file(s)", zapcore.Field{
-	//		Key:    "error",
-	//		Type:   zapcore.StringType,
-	//		String: err.Error(),
-	//	})
-	//}
+	viper.MergeInConfig()
 
 	// 3. setup environment variables
 	viper.SetEnvPrefix(TriremeEnvPrefix)
@@ -230,12 +220,12 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			config.Arguments["<command>"] = args[0]
 
 			if len(args) > 1 {
-				// NOTE: this is taken care of by cobra: it removes the first `--`
-				//if args[1] != "--" {
-				//	return fmt.Errorf("invalid <command>")
-				//}
+				// NOTE: cobra removes the first `--` already from args
 				config.Arguments["<params>"] = args[1:]
 			}
+
+			// print configuration if in debug
+			zap.L().Debug("prepared config", config.Fields()...)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// execute the actual command
@@ -264,6 +254,9 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			if fRmServiceName != nil {
 				config.Arguments["--service-name"] = *fRmServiceName
 			}
+
+			// print configuration if in debug
+			zap.L().Debug("prepared config", config.Fields()...)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// execute the actual command
@@ -287,10 +280,13 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			if fLocal != nil && *fLocal {
 				config.RemoteEnforcer = false
 			}
+
+			// print configuration if in debug
+			zap.L().Debug("prepared config", config.Fields()...)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// display the banner for the daemon startup
-			banner("14", "20")
+			banner()
 			zap.L().Info("Current configuration", config.Fields()...)
 			zap.L().Info("Current library versions", versions.Fields()...)
 
@@ -340,11 +336,13 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			}
 
 			// redo the log setup
-			// TODO: is there a better method than doing it twice?
 			err := setLogs(config.LogFormat, config.LogLevel)
 			if err != nil {
 				return fmt.Errorf("Error setting up logs: %s", err)
 			}
+
+			// print configuration if in debug
+			zap.L().Debug("prepared config", config.Fields()...)
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -369,7 +367,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			// setup logs
 			err = setLogs(config.LogFormat, config.LogLevel)
 			if err != nil {
-				return fmt.Errorf("Error setting up logs: %s", err)
+				return fmt.Errorf("error setting up logs: %s", err)
 			}
 			return nil
 		},
@@ -378,6 +376,9 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 			// so it needs some more special commandline treatment here
 			config.Run = true
 			config.Arguments["<cgroup>"] = args[0]
+
+			// print configuration if in debug
+			zap.L().Debug("prepared config", config.Fields()...)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// execute the actual command
@@ -395,7 +396,6 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 	// TODO: not used at all?
 	rootCmd.PersistentFlags().Bool("log-to-console", true, "Log to console")
 	viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level"))
-	// TODO: LogFormat not used at all?
 	viper.BindPFlag("LogFormat", rootCmd.PersistentFlags().Lookup("log-format"))
 
 	// unset current Trireme Env variables as to keep a clean state for the remote enforcer process.
@@ -403,7 +403,7 @@ func InitCLI(runFunc, rmFunc, cgroupFunc, enforceFunc, daemonFunc func(*Configur
 
 	setupTriremeSubProcessArgs(&config)
 
-	return &config, rootCmd, configFileErr
+	return rootCmd
 }
 
 // LoadConfig returns a Configuration struct ready to use.
